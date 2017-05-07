@@ -2,36 +2,36 @@
 #+OPTIONS: toc:2 h:4
 
 * Configuration
-<<babel-init>>
 ** Introduction
+<<babel-init>>
 
-I use emacs as most of my operating system. As such, the 
-packages and code here has been built up 
-around the way that /I/ work. That means that this
-is probably not a useful configuration for you: if you're a
-new user this contains code you don't need and if you're an
-experienced user you have your own way of doing things.
+I use emacs as most of my operating system. As such, the
+packages and code here has been built up around the way that
+I work. That means that this is probably not a useful
+configuration for you: if you're a new user this contains
+code you don't need and if you're an experienced user you
+have your own way of doing things.
 
 This is my third version of my init file, but the first that
 I'm using with =org-babel= and the first that I'm uploading
 to Github. In my previous iteration I was using evil mode
 extensively. To replace that, I'm experimenting with hydra
-and key-chord as found here. 
+and key-chord as found here.
 
 The overall structure is based extensively on the excellent
-formatting in [[http://sachachua.com/dotemacs][Sacha Chua's Emacs Configuration]].
+formatting in [[http://sachachua.com/dotemacs][Sacha Chua's Emacs Configuration]]. 
 
-In my init file I have the single line 
+This code is not yet ready to function as my init file. When
+it is up to speed and clean I can include the line
 
-(org-babel-load-file (expand-file-name "test.org"
-                   user-emacs-directory))
+=(org-babel-load-file (expand-file-name "test.org" user-emacs-directory))=
 
 ** Starting up
 
 The first order of business is modifying my load-path and
 exec-path to include melpa and things I've installed through
-homebrew. Modifying =custom-file= means that emacs
-doesn't try to write the customize settings into this file. 
+homebrew. Modifying =custom-file= means that emacs doesn't
+try to write the customize settings into this file.
 #+begin_src emacs-lisp :tangle yes
   (require 'package)
   (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/"))
@@ -49,13 +49,22 @@ doesn't try to write the customize settings into this file.
 #+end_src
 
 *** Secrets
-So that I can upload this, I've moved personal information
-to another file. That file should be loaded here.
+So that I can display this publically, I've moved personal
+information to another file. That file is loaded here.
 #+begin_src emacs-lisp :tangle yes
   (load-file "~/.emacs.d/personal.el")
 #+end_src
 
 ** Appearance 
+Fill column is set small right now. If I end up liking margin changes
+which are currently experimental, I might not need it quite
+so small.
+
+This section is mostly "common sense" changes for how I
+expected emacs to act. I've turned off the bell, changed to
+=y-or-n= and disabled automatic indenting. The second
+section is modifications to dired so that folders which
+contain =.tex= files stay less cluttered. 
 #+begin_src emacs-lisp :tangle yes
   (require 'recentf)
   (require 'dired-x)
@@ -95,34 +104,50 @@ to another file. That file should be loaded here.
   (global-set-key (kbd "C-l") 'dired-up-directory)
 #+end_src
 ** Movement
-*** Undo Tree
 *** Helm
-These keybindings need significant improvement
+These replace the ordinary emacs functions with their =helm=
+counterparts. I completely bypassed these while using evil
+mode. I'm going to attempt to do something similar with
+=hydra= below. 
+
+Of the helm functions below, =helm-show-kill-ring= might be
+one of the only keybindings I use. I'd also like to
+incorporate =helm-swoop= but I'm unsure about it still.
 #+begin_src emacs-lisp :tangle yes
   (require 'helm)
   (require 'helm-config)
+  (helm-mode 1)
 
-  (setq helm-candidate-number-limit 100)
-  (setq helm-idle-delay 0.0 
-        helm-input-idle-delay 0.01 
-        helm-yas-display-key-on-candidate t
-        helm-quick-update t
-        helm-M-x-requires-pattern nil
-        helm-ff-skip-boring-files t)
-  (global-set-key (kbd "C-c h") 'helm-mini)
-  (global-set-key (kbd "C-h a") 'helm-apropos)
-  (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
-  (global-set-key (kbd "C-x b") 'helm-buffers-list)
-  (global-set-key (kbd "M-y") 'helm-show-kill-ring)
+  (setq helm-split-window-in-side-p       t 
+    helm-move-to-line-cycle-in-source     t 
+    helm-ff-search-library-in-sexp        t 
+    helm-scroll-amount                    8 
+    helm-ff-file-name-history-use-recentf t
+  )
+  (helm-autoresize-mode t)
+  (global-set-key (kbd "C-x b") 'helm-mini)
+  (global-set-key (kbd "C-x C-f") 'helm-find-files)
+  (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) 
+  (define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)
+  (define-key helm-map (kbd "C-z")  'helm-select-action) 
+  
+  (global-set-key (kbd "C-c h") 'helm-command-prefix)
+  (global-unset-key (kbd "C-x c"))
+  (global-set-key (kbd "C-c h o") 'helm-occur)
+  (global-set-key (kbd "C-c h g") 'helm-google-suggest)
+  (global-set-key (kbd "C-c h c") 'helm-calcul-expression)
   (global-set-key (kbd "M-x") 'helm-M-x)
-  (global-set-key (kbd "C-x c o") 'helm-occur)
-  (global-set-key (kbd "C-x c s") 'helm-swoop)
-  (global-set-key (kbd "C-x c y") 'helm-yas-complete)
-  (global-set-key (kbd "C-x c Y") 'helm-yas-create-snippet-on-region)
-  (global-set-key (kbd "C-x c b") 'my/helm-do-grep-book-notes)
-  (global-set-key (kbd "C-x c SPC") 'helm-all-mark-rings)
+  (global-set-key (kbd "M-y") 'helm-show-kill-ring)
 #+end_src
 *** Hydra
+I have already noticed that these keychords come up with how
+I normally type. Structurally, I think this is more or less
+how I want it set up. I need
++ Movement commands inside of a window 
++ Movement commands between windows
++ Functions where I need easy access 
+  
+
 #+begin_src emacs-lisp :tangle yes
   (defun select-current-line ()
     "Select the current line"
@@ -185,12 +210,12 @@ These keybindings need significant improvement
   
   (key-chord-mode 1)
   (key-chord-define-global "nn" 'nomodifier-movement/body)
-  (key-chord-define-global "pp" 'nomodifier-movement/body)
   (key-chord-define-global "oo" 'window-movement/body)
   (key-chord-define-global "  " 'spacehydra/body)
 #+end_src
 ** Packages
 *** AucTeX 
+This is not yet up to date or clean.
 #+begin_src emacs-lisp :tangle yes
   (setq TeX-auto-save t)
   (setq TeX-parse-self t)
@@ -223,8 +248,17 @@ These keybindings need significant improvement
   
   (setq TeX-source-correlate-method 'synctex)
   (setq TeX-view-program-selection '((output-pdf "PDF Viewer")))
+
+   (setq TeX-view-program-list '(("PDF Viewer" "/Applications/Skim.app/Contents/SharedSupport/displayline -b %n %o %b")))
+(add-hook 'LaTeX-mode-hook 
+          (lambda()
+             (add-to-list 'TeX-command-list '("XeLaTeX" "%`xelatex%(mode)%' %t" TeX-run-TeX nil t))
+             (setq TeX-save-query nil)
+             (setq TeX-show-compilation nil)))
 #+end_src
 *** GAP
+GAP and Pari are here for the same reason, would it be
+reasonable for them to be in the same subsection?
 #+BEGIN_SRC emacs-lisp :tangle yes
   (autoload 'gap-mode "gap-mode" "Gap editing mode" t)
   (setq auto-mode-alist (append (list '("\\.g$" . gap-mode)
@@ -281,6 +315,10 @@ These keybindings need significant improvement
   )
 #+end_src
 ** Mu4e
+My configuration for mu4e is extensive. One advantage of
+moving this configuration to =org= is that I can put the
+entirety of this configuration into the same file and then
+hide the subtree. This section needs cleaning.
 #+begin_src emacs-lisp :tangle yes
   
   (setq mu4e-maildir "~/Maildir")
@@ -391,6 +429,8 @@ These keybindings need significant improvement
   (setq mu4e-html2text-command 'mu4e-shr2text) 
 #+end_src
 * Elisp for testing
+I haven't yet decided if I'll use these, so I'll keep them
+here until I either find a home for them or delete them.
 ** Undo-tree
 #+BEGIN_SRC emacs-lisp :tangle yes
   (use-package undo-tree
