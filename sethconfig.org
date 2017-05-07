@@ -1,0 +1,421 @@
+#+TITLE: Seth Rothschild's Emacs Configuration 
+#+OPTIONS: toc:2 h:4
+
+* Configuration
+<<babel-init>>
+** Introduction
+
+I use emacs as most of my operating system. As such, the 
+packages and code here has been built up 
+around the way that /I/ work. That means that this
+is probably not a useful configuration for you: if you're a
+new user this contains code you don't need and if you're an
+experienced user you have your own way of doing things.
+
+This is my third version of my init file, but the first that
+I'm using with =org-babel= and the first that I'm uploading
+to Github. In my previous iteration I was using evil mode
+extensively. To replace that, I'm experimenting with hydra
+and key-chord as found here. 
+
+The overall structure is based extensively on the excellent
+formatting in [[http://sachachua.com/dotemacs][Sacha Chua's Emacs Configuration]].
+
+In my init file I have the single line 
+
+(org-babel-load-file (expand-file-name "test.org"
+                   user-emacs-directory))
+
+** Starting up
+
+The first order of business is modifying my load-path and
+exec-path to include melpa and things I've installed through
+homebrew. Modifying =custom-file= means that emacs
+doesn't try to write the customize settings into this file. 
+#+begin_src emacs-lisp :tangle yes
+  (require 'package)
+  (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/"))
+  (package-initialize)             
+
+  (add-to-list 'exec-path "/usr/local/bin/")
+  (add-to-list 'exec-path "/usr/bin/")
+  (add-to-list 'load-path "/usr/share/emacs/24.3/lisp")
+
+  (setq custom-file "~/.emacs.d/custom-settings.el")
+  (load custom-file t)
+  
+  (require 'use-package)
+  (server-start)
+#+end_src
+
+*** Secrets
+So that I can upload this, I've moved personal information
+to another file. That file should be loaded here.
+#+begin_src emacs-lisp :tangle yes
+  (load-file "~/.emacs.d/personal.el")
+#+end_src
+
+** Appearance 
+#+begin_src emacs-lisp :tangle yes
+  (require 'recentf)
+  (require 'dired-x)
+
+  (setq-default fill-column 60)
+  (setq column-number-mode t)
+  (electric-indent-mode 0)
+  (defalias 'yes-or-no-p 'y-or-n-p)
+  (setq ring-bell-function 'ignore)
+  (setq sentence-end-double-space nil)   
+
+  (setq read-buffer-completion-ignore-case t)
+  (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
+  (setq recentf-max-saved-items 150)
+
+  ;; Dired Settings
+  (setq default-directory "~/")
+  (setq dired-omit-files 
+    (concat dired-omit-files
+      "\\|^\\..+$\\|^.
+      +?\\.aux$\\|^.
+      +?\\.log$\\|^.
+      +?sync\\|^.
+      +?out\\|^.
+      +?run.xml")
+  )
+                           
+  (add-hook 'dired-mode-hook
+    (lambda ()
+      (dired-omit-mode 1)
+  ))
+  
+  (global-unset-key (kbd "M-o"))
+  (global-set-key (kbd "M-o") 'dired-omit-mode)
+  
+  (global-unset-key (kbd "C-l"))
+  (global-set-key (kbd "C-l") 'dired-up-directory)
+#+end_src
+** Movement
+*** Undo Tree
+*** Helm
+These keybindings need significant improvement
+#+begin_src emacs-lisp :tangle yes
+  (require 'helm)
+  (require 'helm-config)
+
+  (setq helm-candidate-number-limit 100)
+  (setq helm-idle-delay 0.0 
+        helm-input-idle-delay 0.01 
+        helm-yas-display-key-on-candidate t
+        helm-quick-update t
+        helm-M-x-requires-pattern nil
+        helm-ff-skip-boring-files t)
+  (global-set-key (kbd "C-c h") 'helm-mini)
+  (global-set-key (kbd "C-h a") 'helm-apropos)
+  (global-set-key (kbd "C-x C-b") 'helm-buffers-list)
+  (global-set-key (kbd "C-x b") 'helm-buffers-list)
+  (global-set-key (kbd "M-y") 'helm-show-kill-ring)
+  (global-set-key (kbd "M-x") 'helm-M-x)
+  (global-set-key (kbd "C-x c o") 'helm-occur)
+  (global-set-key (kbd "C-x c s") 'helm-swoop)
+  (global-set-key (kbd "C-x c y") 'helm-yas-complete)
+  (global-set-key (kbd "C-x c Y") 'helm-yas-create-snippet-on-region)
+  (global-set-key (kbd "C-x c b") 'my/helm-do-grep-book-notes)
+  (global-set-key (kbd "C-x c SPC") 'helm-all-mark-rings)
+#+end_src
+*** Hydra
+#+begin_src emacs-lisp :tangle yes
+  (defun select-current-line ()
+    "Select the current line"
+    (interactive)
+    (end-of-line) ; move to end of line
+    (set-mark (line-beginning-position)))
+  
+  (defhydra nomodifier-movement ()
+    "Emacs Movement"
+    ("f" forward-char)
+    ("F" forward-word)
+    ("b" backward-char)
+    ("B" backward-word)
+    ("n" next-line)
+    ("p" previous-line)
+    ("e" end-of-line)
+    ("E" forward-sentence)
+    ("a" beginning-of-line)
+    ("A" backward-sentence)
+    ("v" set-mark-command)
+    ("V" select-current-line)
+    (">" end-of-buffer)
+    ("<" beginning-of-buffer)
+    ("q" nil)
+  )
+  
+  (defhydra window-movement ()
+    "Window Movement"
+    ("<left>" windmove-left)
+    ("<right>" windmove-right)
+    ("<down>" windmove-down)
+    ("<up>" windmove-up)
+    ("o" other-window)
+    ("v" split-window-right)
+    ("d" delete-window)
+    ("D" delete-other-windows)
+    ("f" find-file "file")
+    ("F" find-file-other-window "other file")
+    ("b" helm-buffers-list "buffers list")
+    ("B" (progn (other-window 1) (helm-buffers-list)))
+    ("q" nil)
+  )
+
+  (defhydra spacehydra ()
+    "Space-Hydra"
+    ("a" helm-ag "helm-ag")
+    ("b" helm-mini)
+    ("d" dired) 
+    ("f" helm-find-files)
+    ("hf" describe-function)
+    ("hi" info)
+    ("hk" describe-key)
+    ("hm" describe-mode)
+    ("hv" describe-variable)
+    ("s" save-buffer "save")
+    ("m" magit-status "magit status")
+    ("x" helm-M-x)
+    ("q" nil)
+  )
+  
+  (key-chord-mode 1)
+  (key-chord-define-global "nn" 'nomodifier-movement/body)
+  (key-chord-define-global "pp" 'nomodifier-movement/body)
+  (key-chord-define-global "oo" 'window-movement/body)
+  (key-chord-define-global "  " 'spacehydra/body)
+#+end_src
+** Packages
+*** AucTeX 
+#+begin_src emacs-lisp :tangle yes
+  (setq TeX-auto-save t)
+  (setq TeX-parse-self t)
+  (setq-default TeX-master nil)
+  (setq reftex-plug-into-AUCTeX t)
+  (setq TeX-PDF-mode t)
+  (add-hook 'LaTeX-mode-hook 'auto-fill-mode)
+  (add-hook 'LaTeX-mode-hook 'flyspell-mode)
+  (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
+  (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
+  (add-hook 'LaTeX-mode-hook
+    (lambda () (local-set-key (kbd "<M-S-mouse-1>") #'TeX-view)))
+  (add-hook 'LaTeX-mode-hook 'TeX-source-correlate-mode)
+  
+  (getenv "PATH")
+  (setenv "PATH" (concat "/usr/texbin" ":"
+      (getenv "PATH")
+    )
+  )
+  (getenv "PATH")
+  
+  (setenv "PATH" (concat "/usr/local/bin" ":"
+      (getenv "PATH")
+    )
+  )
+  (setenv "PATH" (concat "/usr/bin" ":"
+      (getenv "PATH")
+    )
+  )
+  
+  (setq TeX-source-correlate-method 'synctex)
+  (setq TeX-view-program-selection '((output-pdf "PDF Viewer")))
+#+end_src
+*** GAP
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (autoload 'gap-mode "gap-mode" "Gap editing mode" t)
+  (setq auto-mode-alist (append (list '("\\.g$" . gap-mode)
+    '("\\.gap$" . gap-mode))
+    auto-mode-alist))
+  (autoload 'gap "gap-process" "Run GAP in emacs buffer" t)
+  (setq gap-executable "/Users/seth/Downloads/gap4r8/bin/gap-default64.sh")
+  (setq gap-start-options '("-n" "-f" "-b" "-m" "2g"))
+#+END_SRC
+*** GP/Pari
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (add-to-list 'load-path "/usr/local/bin/pari")
+  (autoload 'gp-mode "pari" nil t)
+  (autoload 'gp-script-mode "pari" nil t)
+  (autoload 'gp "pari" nil t)
+  (autoload 'gpman "pari" nil t)
+  (setq auto-mode-alist (cons '("\\.gp$" . gp-script-mode)
+    auto-mode-alist))
+#+END_SRC
+*** Jabber 
+#+begin_src emacs-lisp :tangle yes
+  (require 'jabber)
+  (setq 
+    jabber-roster-line-format " %c %-25n %u %-8s"
+    jabber-chat-buffer-show-avatar nil
+    jabber-history-enabled t
+    jabber-use-global-history t
+    jabber-backlog-number 40
+    jabber-backlog-days 30
+  )
+#+end_src
+*** Magit
+*** Multiple Cursors 
+#+begin_src emacs-lisp :tangle yes
+  (global-set-key (kbd "C->") 'mc/mark-next-like-this)
+  (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
+#+end_src
+*** Twitter
+#+begin_src emacs-lisp :tangle yes
+  (require 'twittering-mode)
+  (defun twitter-open-link ()
+    (twittering-goto-next-thing t)
+    (twittering-enter)
+  )
+  (if twittering-mode-map
+    (let ((km twittering-mode-map))
+      (define-key km (kbd "n") 'twittering-goto-next-status)
+      (define-key km (kbd "p") 'twittering-goto-previous-status)
+      (define-key km (kbd "N") 'twittering-goto-next-status-of-user)
+      (define-key km (kbd "P") 'twittering-goto-previous-status-of-user)
+      (define-key km (kbd "o") 'twitter-open-link)
+      nil
+    )
+  )
+#+end_src
+** Mu4e
+#+begin_src emacs-lisp :tangle yes
+  
+  (setq mu4e-maildir "~/Maildir")
+  
+  (setq mu4e-drafts-folder "/Gmail/[Gmail].Drafts")
+  (setq mu4e-sent-folder   "/Gmail/[Gmail].Sent Mail")
+  (setq mu4e-trash-folder  "/Gmail/[Gmail].Trash")
+  
+  (setq mu4e-sent-messages-behavior 'sent)
+  
+  (setq mu4e-maildir-shortcuts
+      '( ("/Gmail/INBOX"     . ?i)
+         ("/Outlook/INBOX"   . ?e)))
+  
+  ;; allow for updating mail using 'U' in the main view:
+  (setq mu4e-get-mail-command "/usr/local/bin/offlineimap")
+  (setq mu4e-update-interval 180)
+  (setq mu4e-split-view 'horizontal)
+  (setq mu4e-headers-visible-lines 14)
+  
+  (setq mu4e-headers-fields
+      '( (:human-date    .  12)
+         (:flags         .   6)
+         (:from          .  22)
+         (:to            .  22)
+         (:subject       .  nil)))
+  
+  (add-to-list 'mu4e-bookmarks
+  '("\"maildir:/Gmail/[Gmail].Sent Mail\" date:8w..now OR \"maildir:/Outlook/Sent\" date:8w..now" "All sent" ?s))
+  (add-to-list 'mu4e-bookmarks
+  	     '("\"maildir:/Gmail/INBOX\" date:4w..now OR \"maildir:/Outlook/INBOX\" date:4w..now" "All mail" ?a))
+  
+  
+   
+  ;; something about ourselves
+  
+  (setq message-signature nil)
+  (setq message-signature-file "~/.emacs.d/.signature")
+  (setq mu4e-compose-signature-auto-include nil)
+  (setq mu4e-compose-signature (file-string "~/.emacs.d/.signature"))
+  (setq mu4e-compose-dont-reply-to-self t)
+  
+  (setq starttls-gnutls-program "/usr/local/bin/gnutls-cli")
+  
+  (require 'smtpmail)
+  
+  (setq message-kill-buffer-on-exit t)
+  
+  (defun my-mu4e-set-account ()
+    "Set the account for composing a message."
+    (let* ((account
+            (if mu4e-compose-parent-message
+                (let ((maildir (mu4e-message-field mu4e-compose-parent-message :maildir)))
+                  (string-match "/\\(.*?\\)/" maildir)
+                  (match-string 1 maildir))
+              (completing-read (format "Compose with account: (%s) "
+                                       (mapconcat #'(lambda (var) (car var))
+                                                  my-mu4e-account-alist "/"))
+                               (mapcar #'(lambda (var) (car var)) my-mu4e-account-alist)
+                               nil t nil nil (caar my-mu4e-account-alist))))
+           (account-vars (cdr (assoc account my-mu4e-account-alist))))
+      (if account-vars
+          (mapc #'(lambda (var)
+                    (set (car var) (cadr var)))
+                account-vars)
+        (error "No email account found"))))
+  
+  (add-hook 'mu4e-compose-pre-hook 'my-mu4e-set-account)
+  (add-hook 'mu4e-compose-mode-hook 'flyspell-mode)
+  
+  (require 'gnus-dired)
+
+  (defun gnus-dired-mail-buffers ()
+    "Return a list of active message buffers."
+    (let (buffers)
+      (save-current-buffer
+        (dolist (buffer (buffer-list t))
+  	(set-buffer buffer)
+  	(when (and (derived-mode-p 'message-mode)
+  	  (null message-sent-message-via))
+  	  (push (buffer-name buffer) buffers))))
+      (nreverse buffers)))
+  
+  (setq gnus-dired-mail-mode 'mu4e-user-agent)
+  (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
+  
+  (require 'org-mu4e)
+  
+  (add-to-list 'mu4e-view-actions
+    '("ViewInBrowser" . mu4e-action-view-in-browser) t)
+  (add-to-list 'helm-find-files-actions
+    '("Attach files for mu4e" .
+      helm-mu4e-attach) t
+  )
+  
+  (defun helm-mu4e-attach (_file)
+    (gnus-dired-attach (helm-marked-candidates)))
+  (require 'helm-mu)
+  (setq mu4e-hide-index-messages 1)
+  
+  (mu4e-alert-set-default-style 'notifier)
+  (setq alert-notifier-command "/usr/local/bin/terminal-notifier")
+  (add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
+  (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
+  
+  
+  (require 'mu4e-contrib) 
+  (setq mu4e-html2text-command 'mu4e-shr2text) 
+#+end_src
+* Elisp for testing
+** Undo-tree
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package undo-tree
+    :diminish undo-tree-mode
+    :config
+    (progn
+      (global-undo-tree-mode)
+      (setq undo-tree-visualizer-timestamps t)
+      (setq undo-tree-visualizer-diff t)))
+#+END_SRC
+** Helm swoop
+#+BEGIN_SRC emacs-lisp :tangle yes
+  (use-package helm-swoop
+    :bind
+    (("C-S-s" . helm-swoop)
+      ("M-i" . helm-swoop)
+      ("M-s s" . helm-swoop)
+      ("M-s M-s" . helm-swoop)
+      ("M-I" . helm-swoop-back-to-last-point)
+      ("C-c M-i" . helm-multi-swoop)
+      ("C-x M-i" . helm-multi-swoop-all)
+    )
+    :config
+    (progn
+      (define-key isearch-mode-map (kbd "M-i") 'helm-swoop-from-isearch)
+      (define-key helm-swoop-map (kbd "M-i") 'helm-multi-swoop-all-from-helm-swoop))
+  )
+#+END_SRC
