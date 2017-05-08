@@ -1,8 +1,5 @@
 #+TITLE: Seth Rothschild's Emacs Configuration 
 #+OPTIONS: toc:2 h:4
-
-* Configuration
-** Introduction
 <<babel-init>>
 
 I use emacs as most of my operating system. As such, the
@@ -18,16 +15,22 @@ to Github. In my previous iteration I was using evil mode
 extensively. To replace that, I'm experimenting with hydra
 and key-chord as found here.
 
-The overall structure is based extensively on the excellent
+The overall structure is based on the excellent
 formatting in [[http://sachachua.com/dotemacs][Sacha Chua's Emacs Configuration]]. 
-
 This code is not yet ready to function as my init file. When
 it is up to speed and clean I can include the line
 
-=(org-babel-load-file (expand-file-name "test.org" user-emacs-directory))=
+=(org-babel-load-file (expand-file-name "sethconfig.org" user-emacs-directory))=
+
+* Configuration
+This file is broken into two parts. The first section is my
+current configuration which in the future will be fairly
+stable. The second section should be functions and packages
+that I'm not sure I want to incorporate into my workflow.
+That way the "things I might delete" sections can stay away
+from the stable sections.
 
 ** Starting up
-
 The first order of business is modifying my load-path and
 exec-path to include melpa and things I've installed through
 homebrew. Modifying =custom-file= means that emacs doesn't
@@ -131,14 +134,9 @@ incorporate =helm-swoop= but I'm unsure about it still.
 (global-set-key (kbd "C-x b") 'helm-mini)
 (global-set-key (kbd "C-x C-f") 'helm-find-files)
 (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) 
-(define-key helm-map (kbd "C-i") 'helm-execute-persistent-action)
 (define-key helm-map (kbd "C-z")  'helm-select-action) 
 
 (global-set-key (kbd "C-c h") 'helm-command-prefix)
-(global-unset-key (kbd "C-x c"))
-(global-set-key (kbd "C-c h o") 'helm-occur)
-(global-set-key (kbd "C-c h g") 'helm-google-suggest)
-(global-set-key (kbd "C-c h c") 'helm-calcul-expression)
 (global-set-key (kbd "M-x") 'helm-M-x)
 (global-set-key (kbd "M-y") 'helm-show-kill-ring)
 #+end_src
@@ -149,7 +147,7 @@ how I want it set up. I need
 + Movement commands inside of a window 
 + Movement commands between windows
 + Functions where I need easy access 
-  
+
 
 #+begin_src emacs-lisp :tangle yes
 (defun select-current-line ()
@@ -160,24 +158,26 @@ how I want it set up. I need
 
 (defhydra nomodifier-movement ()
   "Emacs Movement"
-  ("f" forward-char)
-  ("F" forward-word)
-  ("b" backward-char)
-  ("B" backward-word)
-  ("n" next-line)
-  ("p" previous-line)
-  ("e" end-of-line)
-  ("E" forward-sentence)
   ("a" beginning-of-line)
   ("A" backward-sentence)
-  ("u" undo-tree-visualize)
+  ("b" backward-char)
+  ("B" backward-word)
   ("dl" delete-char)
   ("dw" kill-word)
   ("dd" kill-whole-line)
+  ("dr" kill-region)
+  ("e" end-of-line)
+  ("E" forward-sentence)
+  ("f" forward-char)
+  ("F" forward-word)
+  ("n" next-line)
+  ("p" previous-line)
+  ("u" undo-tree-undo)
+  ("U" undo-tree-visualize)
   ("v" set-mark-command)
   ("V" select-current-line)
-  (">" end-of-buffer) 
-  ("<" beginning-of-buffer)
+  ("x" delete-char)
+  ("y" yank)
   ("q" nil)
 )
 
@@ -214,12 +214,31 @@ how I want it set up. I need
   ("x" helm-M-x)
   ("q" nil)
 )
- 
+
 (key-chord-mode 1)
 (key-chord-define-global "np" 'nomodifier-movement/body)
-(key-chord-define-global "oo" 'window-movement/body)
+
+(global-unset-key (kbd "C-o")) 
+(global-set-key (kbd "C-o") 'window-movement/body)
+
 (key-chord-define-global "  " 'spacehydra/body)
 #+end_src
+Additionally, I'll set up some Hydras for modes that I use regularly. Here is one for =org=:
+#+begin_src emacs-lisp :tangle yes
+(defhydra orghydra (:exit t)
+  "Hydra for Org"
+  ("a" org-agenda "agenda")
+  ("c" org-capture "capture")
+  ("ls" org-store-link "store link")
+  ("li" org-insert-link "insert link")
+  ("t" org-todo "org-todo" :exit nil)
+  ("<left>" org-metaleft :exit nil)
+  ("<right>" org-metaright :exit nil)
+  ("q" nil)
+)
+(key-chord-define-global "jk" 'orghydra/body)
+(setq org-return-follows-link t)
+#+end_src 
 ** Packages
 *** AucTeX 
 This is not yet up to date or clean.
@@ -234,7 +253,8 @@ This is not yet up to date or clean.
   (add-hook 'LaTeX-mode-hook 'LaTeX-math-mode)
   (add-hook 'LaTeX-mode-hook 'turn-on-reftex)
   (add-hook 'LaTeX-mode-hook
-    (lambda () (local-set-key (kbd "<M-S-mouse-1>") #'TeX-view)))
+    (lambda () (local-set-key (kbd "<M-S-mouse-1>") #'TeX-view))
+  )
   (add-hook 'LaTeX-mode-hook 'TeX-source-correlate-mode)
   
   (getenv "PATH")
@@ -256,14 +276,16 @@ This is not yet up to date or clean.
   (setq TeX-source-correlate-method 'synctex)
   (setq TeX-view-program-selection '((output-pdf "PDF Viewer")))
 
-   (setq TeX-view-program-list '(("PDF Viewer" "/Applications/Skim.app/Contents/SharedSupport/displayline -b %n %o %b")))
-(add-hook 'LaTeX-mode-hook 
-          (lambda()
-             (add-to-list 'TeX-command-list '("XeLaTeX" "%`xelatex%(mode)%' %t" TeX-run-TeX nil t))
-             (setq TeX-save-query nil)
-             (setq TeX-show-compilation nil)))
+  (setq TeX-view-program-list '(("PDF Viewer" "/Applications/Skim.app/Contents/SharedSupport/displayline -b %n %o %b")))
+  (add-hook 'LaTeX-mode-hook 
+    (lambda()
+      (add-to-list 'TeX-command-list '("XeLaTeX" "%`xelatex%(mode)%' %t" TeX-run-TeX nil t))
+      (setq TeX-save-query nil)
+      (setq TeX-show-compilation nil)
+    )
+  )
 
-(add-hook 'LaTeX-mode-hook #'outline-minor-mode)
+  (add-hook 'LaTeX-mode-hook #'outline-minor-mode)
 #+end_src
 *** GAP
 GAP and Pari are here for the same reason, would it be
@@ -300,6 +322,9 @@ reasonable for them to be in the same subsection?
   )
 #+end_src
 *** Magit
+#+begin_src emacs-lisp :tangle yes
+(setq magit-repository-directories '("~/Desktop/Repositories"))
+#+end_src
 *** Multiple Cursors 
 #+begin_src emacs-lisp :tangle yes
   (global-set-key (kbd "C->") 'mc/mark-next-like-this)
@@ -503,3 +528,18 @@ here until I either find a home for them or delete them.
     (define-key helm-swoop-map (kbd "M-i") 'helm-multi-swoop-all-from-helm-swoop))
 )
 #+END_SRC
+** Reading
+From [[http:ergoemacs.com/emacs/emacs_make_modern.html]]
+
+This is clearly a step in the right direction. Maybe I need
+to look more into this with =visual-line-mode= so that I can
+stop filling everything with =M-q=.
+#+begin_src emacs-lisp :tangle yes
+(defun xah-toggle-margin-right ()
+  "Toggle the right margin between `fill-column' or window width.
+This command is convenient when reading novel, documentation."
+  (interactive)
+  (if (eq (cdr (window-margins)) nil)
+      (set-window-margins nil 0 (- (window-body-width) fill-column))
+    (set-window-margins nil 0 0) ) )
+#+end_src
