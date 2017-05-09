@@ -156,7 +156,7 @@ how I want it set up. I need
 + Movement commands between windows
 + Functions where I need easy access 
 
-
+     
 #+begin_src emacs-lisp :tangle yes
 (defun select-current-line ()
   "Select the current line"
@@ -216,22 +216,24 @@ how I want it set up. I need
 
 (defhydra spacehydra (:exit t)
   "Space-Hydra"
-  ("a" helm-ag "helm-ag")
+  ("a" org-agenda "agenda")
   ("b" helm-mini)
+  ("c" org-capture "capture")
   ("d" dired) 
-  ("f" helm-find-files)
+  ("fa" helm-ag "helm-ag")
+  ("ff" helm-find-files)
   ("hf" describe-function)
   ("hi" info)
   ("hk" describe-key)
   ("hm" describe-mode)
   ("hv" describe-variable)
+  ("ls" org-store-link "store link")
+  ("li" org-insert-link "insert link")
   ("n" nomodifier-movement/body :exit t)
+  ("o" window-movement/body :exit t)
   ("p" nomodifier-movement/body :exit t)
-  ("oa" org-agenda "agenda")
-  ("oc" org-capture "capture")
-  ("ols" org-store-link "store link")
-  ("oli" org-insert-link "insert link")
   ("s" save-buffer "save")
+  ("t" (find-file (TODO-file-today)) "todo")
   ("m" magit-status "magit status")
   ("x" helm-M-x)
   ("q" nil)
@@ -262,12 +264,10 @@ Additionally, I'll set up some Hydras for modes that I use regularly. For =org-m
   ("E" forward-sentence)
   ("f" forward-char)
   ("F" forward-word)
-  ("h" hide-subtree "hide-subtree")
   ("n" next-line)
   ("N" (next-line 5))
   ("p" previous-line)
   ("P" (previous-line 5))
-  ("s" show-subtree "show-subtree")
   ("u" undo-tree-undo)
   ("U" undo-tree-visualize)
   ("v" set-mark-command)
@@ -293,7 +293,6 @@ Additionally, I'll set up some Hydras for modes that I use regularly. For =org-m
   ("q" nil)
 )
 
-(global-set-key (kbd "C-c c") 'orghydra-global/body)
 (key-chord-define org-mode-map "np" 'orghydra-local/body)
 (setq org-return-follows-link t)
 #+end_src 
@@ -320,7 +319,7 @@ This is not yet up to date or clean.
       (getenv "PATH")
     )
   )
-  (getenv "PATH")
+p  (getenv "PATH")
   
   (setenv "PATH" (concat "/usr/local/bin" ":"
       (getenv "PATH")
@@ -562,6 +561,50 @@ hide the subtree. This section needs cleaning.
   (require 'mu4e-contrib) 
   (setq mu4e-html2text-command 'mu4e-shr2text) 
 #+end_src
+** Org
+General configuration: Not yet done and not yet clean. Org mode hydra defined above.
+#+BEGIN_SRC emacs-lisp :tangle yes
+(setq org-capture-templates '(
+    ("t" "TODO capture"
+         entry (file (TODO-file-today))
+         "* TODO %?")
+    ("l" "TODO capture with link"
+         entry (file (TODO-file-today))
+         "* TODO %?\n  From: %a")
+))
+
+(setq org-cycle-emulate-tab nil)
+(setq org-directory "~/.emacs.d/org-files")
+(setq org-agenda-files (file-expand-wildcards "~/.emacs.d/org-files/*.org"))
+#+END_SRC
+I find that I like making throwaway todo lists when I have a lot of things that need doing. I've tried an overarching org setup in the past but it seems to not stick. Instead of trying that again, I'm going to try to enhance the habits I tend towards naturally.
+
+Here I only have two captures: a TODO without a link and a TODO with one. The first two functions are slightly modified from [[http://www.howardism.org/Technical/Emacs/journaling-org.html]]
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defun get-TODO-file-today ()
+  "Return filename for today's journal entry."
+  (let ((daily-name (format-time-string "%Y-%m-%d")))
+    (expand-file-name (concat "~/.emacs.d/org-files/" daily-name ".org"))))
+
+(defun TODO-file-today ()
+  "Create and load a journal file based on today's date."
+  (if (equal (file-exists-p (get-TODO-file-today)) t)
+  (get-TODO-file-today)
+  (progn
+    (find-file (get-TODO-file-today))
+    (insert-string (concat "#+TITLE: TODO List for " (format-time-string "%A, %B %d")))
+    (newline)
+    (insert-string "#+DATE: ")
+    (org-date-from-calendar)
+    (save-buffer t)
+    (get-TODO-file-today)
+  ))
+)
+
+
+
+#+END_SRC
+
 * Elisp for testing
 I haven't yet decided if I'll use these, so I'll keep them
 here until I either find a home for them or delete them.
