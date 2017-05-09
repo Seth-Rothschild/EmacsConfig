@@ -149,13 +149,17 @@ incorporate =helm-swoop= but I'm unsure about it still.
 (global-set-key (kbd "M-y") 'helm-show-kill-ring)
 #+end_src
 *** Hydra
-I have already noticed that these keychords come up with how
-I normally type. Structurally, I think this is more or less
+This is moving in the right direction, though I think the hydra body keybinding for windows and spacehydra might change. 
+Structurally, I think this is more or less
 how I want it set up. I need
 + Movement commands inside of a window 
 + Movement commands between windows
 + Functions where I need easy access 
+Something I didn't expect to be fundamental was that the keybinding all overlap. That is, it turned out to be important that I could get from spacehydra to movement commands and back easily. Open questions:
 
+1. There's currently some weirdness around using q as an escape key.
+2. Is it important to have a newline above and below command?
+3. What commands would be unobtrusive for windows and space?
      
 #+begin_src emacs-lisp :tangle yes
 (defun select-current-line ()
@@ -246,10 +250,11 @@ how I want it set up. I need
 (global-set-key (kbd "C-o") 'window-movement/body)
 
 (key-chord-define-global "  " 'spacehydra/body)
+
 #+end_src
 Additionally, I'll set up some Hydras for modes that I use regularly. For =org-mode= I'll want some global commands and some local commands. It is still unclear if I prefer having org-global commands in their own hydra. The local commands should be mostly the same as my movement commands with some extras for org mode. Is there a way to extend a hydra in a certain mode?
-#+begin_src emacs-lisp :tangle yes
 
+#+begin_src emacs-lisp :tangle yes
 (defhydra orghydra-local ()
    "Hydra for org movement"
   ("a" beginning-of-line)
@@ -319,7 +324,7 @@ This is not yet up to date or clean.
       (getenv "PATH")
     )
   )
-p  (getenv "PATH")
+  (getenv "PATH")
   
   (setenv "PATH" (concat "/usr/local/bin" ":"
       (getenv "PATH")
@@ -589,20 +594,18 @@ Here I only have two captures: a TODO without a link and a TODO with one. The fi
 (defun TODO-file-today ()
   "Create and load a journal file based on today's date."
   (if (equal (file-exists-p (get-TODO-file-today)) t)
-  (get-TODO-file-today)
-  (progn
-    (find-file (get-TODO-file-today))
-    (insert-string (concat "#+TITLE: TODO List for " (format-time-string "%A, %B %d")))
-    (newline)
-    (insert-string "#+DATE: ")
-    (org-date-from-calendar)
-    (save-buffer t)
     (get-TODO-file-today)
-  ))
+    (progn
+      (find-file (get-TODO-file-today))
+      (insert-string (concat "#+TITLE: TODO List for " (format-time-string "%A, %B %d")))
+      (newline)
+      (insert-string "#+DATE: ")
+      (org-date-from-calendar)
+      (save-buffer t)
+      (get-TODO-file-today)
+    )
+  )
 )
-
-
-
 #+END_SRC
 
 * Elisp for testing
