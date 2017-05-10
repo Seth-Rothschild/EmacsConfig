@@ -15,26 +15,26 @@ to Github. In my previous iteration I was using evil mode
 extensively. To replace that, I'm experimenting with hydra
 and key-chord as found here.
 
-The overall structure is based on the excellent
-formatting in [[http://sachachua.com/dotemacs][Sacha Chua's Emacs Configuration]]. 
-This code is not yet ready to function as my init file. When
-it is up to speed and clean I can include the line
-
+The overall structure is based on the excellent formatting
+in [[http://sachachua.com/dotemacs][Sacha Chua's Emacs Configuration]]. It is called when emacs starts by the line
 =(org-babel-load-file (expand-file-name "sethconfig.org" user-emacs-directory))=
+in my init file. That command creates the =sethconfig.el= file.
 
 * Configuration
-This file is broken into two parts. The first section is my
-current configuration which in the future will be fairly
-stable. The second section should be functions and packages
-that I'm not sure I want to incorporate into my workflow.
-That way the "things I might delete" sections can stay away
-from the stable sections.
+This configuration is broken into two parts. The first
+section is my current configuration which in the future will
+be fairly stable. The second section should be functions and
+packages that I'm not sure I want to incorporate into my
+workflow. For one time testing of elisp I use the scratch
+buffer.
 
 ** Starting up
 The first order of business is modifying my load-path and
 exec-path to include melpa and things I've installed through
-homebrew. Modifying =custom-file= means that emacs doesn't
-try to write the customize settings into this file.
+homebrew. I hadn't considered modifying =custom-file=, but
+I've really liked it since it keeps the clutter out of this
+file.
+
 #+begin_src emacs-lisp :tangle yes
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/"))
@@ -49,6 +49,14 @@ try to write the customize settings into this file.
 
 (require 'use-package)
 (server-start)
+
+;; I use the server so that I can open applications with emacsclient without
+;; running the entire init file again. In automator, I exported
+;; for f in "$@"
+;;  do
+;;	/usr/local/bin/emacsclient -a "" -n "$f"
+;;  done
+;; as EmacsClient.app, and set that as the default application to open things
 #+end_src
 
 *** Secrets
@@ -72,6 +80,7 @@ expected emacs to act. I've turned off the bell, changed to
 (require 'dired-x)
 
 (setq-default fill-column 60)
+
 (setq column-number-mode t)
 (electric-indent-mode 0)
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -120,12 +129,11 @@ might modify this later.
 ** Movement
 *** Helm
 These replace the ordinary emacs functions with their =helm=
-counterparts. I completely bypassed these while using evil
-mode. I'm going to attempt to do something similar with
-=hydra= below. 
+counterparts. I completely bypassed these keybindings while
+using evil mode and will do the same with =hydra= below.
 
-Of the helm functions below, =helm-show-kill-ring= might be
-one of the only keybindings I use. I'd also like to
+Of the helm functions, =helm-show-kill-ring= and =helm-M-X= might be
+the only keybindings I use. I'd also like to
 incorporate =helm-swoop= but I'm unsure about it still.
 #+begin_src emacs-lisp :tangle yes
 (require 'helm)
@@ -139,19 +147,22 @@ incorporate =helm-swoop= but I'm unsure about it still.
   helm-ff-file-name-history-use-recentf t
 )
 (helm-autoresize-mode t)
-(global-set-key (kbd "C-x b") 'helm-mini)
-(global-set-key (kbd "C-x C-f") 'helm-find-files)
+
 (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) 
 (define-key helm-map (kbd "C-z")  'helm-select-action) 
 
+(global-set-key (kbd "C-x b") 'helm-mini)
+(global-set-key (kbd "C-x C-f") 'helm-find-files)
 (global-set-key (kbd "C-c h") 'helm-command-prefix)
+
 (global-set-key (kbd "M-x") 'helm-M-x)
 (global-set-key (kbd "M-y") 'helm-show-kill-ring)
 #+end_src
 *** Hydra
-This is moving in the right direction, though I think the hydra body keybinding for windows and spacehydra might change. 
-Structurally, I think this is more or less
-how I want it set up. I need
+This is moving in the right direction, though I think the
+hydra body keybinding for windows and spacehydra might
+change. Structurally, I think this is more or less how I
+want it set up. I need
 + Movement commands inside of a window 
 + Movement commands between windows
 + Functions where I need easy access 
@@ -193,9 +204,13 @@ Something I didn't expect to be fundamental was that the keybinding all overlap.
   ("x" delete-char)
   ("X" delete-backward-char)
   ("y" yank)
-  ("SPC" spacehydra/body :exit t)
+
+  ("o" window-movement/body :exit t)
+  ("SPC" spacehydra-movement/body :exit t)
+
   ("q" nil)
 )
+
 
 (defhydra window-movement ()
   "Window Movement"
@@ -209,16 +224,18 @@ Something I didn't expect to be fundamental was that the keybinding all overlap.
   ("D" delete-other-windows)
   ("f" find-file)
   ("F" find-file-other-window)
+  ("h" split-window-below)
   ("o" other-window)
   ("v" split-window-right)
-  ("SPC" spacehydra/body :exit t)
+
+  ("SPC" spacehydra-movement/body :exit t)
   ("n" nomodifier-movement/body :exit t)
   ("p" nomodifier-movement/body :exit t)
   ("q" nil)
 )
 
 
-(defhydra spacehydra (:exit t)
+(defhydra spacehydra-movement (:exit t)
   "Space-Hydra"
   ("a" org-agenda "agenda")
   ("b" helm-mini)
@@ -233,23 +250,25 @@ Something I didn't expect to be fundamental was that the keybinding all overlap.
   ("hv" describe-variable)
   ("ls" org-store-link "store link")
   ("li" org-insert-link "insert link")
-  ("n" nomodifier-movement/body :exit t)
-  ("o" window-movement/body :exit t)
-  ("p" nomodifier-movement/body :exit t)
   ("s" save-buffer "save")
   ("t" (find-file (TODO-file-today)) "todo")
   ("m" magit-status "magit status")
   ("x" helm-M-x)
+
+  ("n" nomodifier-movement/body :exit t)
+  ("p" nomodifier-movement/body :exit t)
+  ("o" window-movement/body :exit t)
+
   ("q" nil)
 )
 
 (key-chord-mode 1)
 (key-chord-define-global "np" 'nomodifier-movement/body)
 
-(global-unset-key (kbd "C-o")) 
-(global-set-key (kbd "C-o") 'window-movement/body)
+(global-unset-key (kbd "C-x o")) 
+(global-set-key (kbd "C-x o") 'window-movement/body)
 
-(key-chord-define-global "  " 'spacehydra/body)
+(key-chord-define-global "  " 'spacehydra-movement/body)
 
 #+end_src
 Additionally, I'll set up some Hydras for modes that I use regularly. For =org-mode= I'll want some global commands and some local commands. It is still unclear if I prefer having org-global commands in their own hydra. The local commands should be mostly the same as my movement commands with some extras for org mode. Is there a way to extend a hydra in a certain mode?
@@ -294,7 +313,9 @@ Additionally, I'll set up some Hydras for modes that I use regularly. For =org-m
   ("<up>" org-metaup)
   ("<down>" org-metadown)
   ("<tab>" org-cycle)
-  ("SPC" spacehydra/body :exit t)
+  
+  ("o" window-movement/body :exit t)
+  ("SPC" spacehydra-movement/body :exit t)
   ("q" nil)
 )
 
@@ -581,6 +602,11 @@ General configuration: Not yet done and not yet clean. Org mode hydra defined ab
 (setq org-cycle-emulate-tab nil)
 (setq org-directory "~/.emacs.d/org-files")
 (setq org-agenda-files (file-expand-wildcards "~/.emacs.d/org-files/*.org"))
+
+(setq org-todo-keywords
+  '((sequence "TODO" "|" "WAIT" "DONE")))
+(setq org-todo-keyword-faces
+  '(("TODO" . org-warning) ("WAIT" . "blue")))
 #+END_SRC
 I find that I like making throwaway todo lists when I have a lot of things that need doing. I've tried an overarching org setup in the past but it seems to not stick. Instead of trying that again, I'm going to try to enhance the habits I tend towards naturally.
 
@@ -596,14 +622,16 @@ Here I only have two captures: a TODO without a link and a TODO with one. The fi
   (if (equal (file-exists-p (get-TODO-file-today)) t)
     (get-TODO-file-today)
     (progn
+      (calendar)
       (find-file (get-TODO-file-today))
       (insert-string (concat "#+TITLE: TODO List for " (format-time-string "%A, %B %d")))
       (newline)
       (insert-string "#+DATE: ")
       (org-date-from-calendar)
       (save-buffer t)
+      (setq org-agenda-files (file-expand-wildcards "~/.emacs.d/org-files/*.org"))
       (get-TODO-file-today)
-    )
+    )  
   )
 )
 #+END_SRC
@@ -647,3 +675,106 @@ This command is convenient when reading novel, documentation."
       (set-window-margins nil 0 (- (window-body-width) fill-column))
     (set-window-margins nil 0 0) ) )
 #+end_src
+** Conditional Hydra
+The goal is to have a /single/ hydra for movement which has different commands based on environment. Something like this will work: can define the actual keys for the given commands as the hint for the hydra in a massive conditional statement.
+#+BEGIN_SRC emacs-lisp :tangle yes
+(defhydra hydra-org (:hint nil)
+   "Hydra for org movement"
+  ("a" beginning-of-line)
+  ("A" backward-sentence)
+  ("b" backward-char)
+  ("B" backward-word)
+  ("dl" delete-char)
+  ("dw" kill-word)
+  ("dd" kill-whole-line)
+  ("dr" kill-region)
+  ("e" end-of-line)
+  ("E" forward-sentence)
+  ("f" forward-char)
+  ("F" forward-word)
+  ("n" next-line)
+  ("N" (next-line 5))
+  ("p" previous-line)
+  ("P" (previous-line 5))
+  ("u" undo-tree-undo)
+  ("U" undo-tree-visualize)
+  ("v" set-mark-command)
+  ("V" select-current-line)
+  ("x" delete-char)
+  ("X" delete-backward-char)
+  ("y" yank) 
+  
+  ("il" (progn (newline)
+    (insert-string "<s")
+    (org-try-structure-completion)
+    (insert-string "emacs-lisp :tangle yes")
+    (next-line)
+  ) "insert lisp block")
+  ("t" org-todo "org-todo")
+  ("." org-time-stamp "org-time-stamp")
+  ("<left>" org-metaleft)
+  ("<right>" org-metaright)
+  ("<up>" org-metaup)
+  ("<down>" org-metadown)
+  ("<tab>" org-cycle)
+  
+  ("o" window-movement/body :exit t)
+  ("SPC" spacehydra-movement/body :exit t)
+  ("q" nil)
+)
+
+(setq hydra-org/hint
+  '(prog1 (eval (hydra--format nil '(nil nil :hint nil) "\n" hydra-org/heads))
+    (define-key hydra-org/keymap "a" 'hydra-org/beginning-of-line)
+    (define-key hydra-org/keymap "A" 'hydra-org/backward-sentence)
+    (define-key hydra-org/keymap "b" 'hydra-org/backward-char)
+    (define-key hydra-org/keymap "B" 'hydra-org/backward-word)
+    (define-key hydra-org/keymap "dl" 'hydra-org/delete-char)
+    (define-key hydra-org/keymap "dw" 'hydra-org/kill-word)
+    (define-key hydra-org/keymap "dd" 'hydra-org/kill-whole-line)
+    (define-key hydra-org/keymap "dr" 'hydra-org/kill-region)
+    (define-key hydra-org/keymap "e" 'hydra-org/end-of-line)
+    (define-key hydra-org/keymap "E" 'hydra-org/forward-sentence)
+    (define-key hydra-org/keymap "f" 'hydra-org/forward-char)
+    (define-key hydra-org/keymap "F" 'hydra-org/forward-word)
+    (define-key hydra-org/keymap "n" 'hydra-org/next-line)
+    (define-key hydra-org/keymap "N" 'hydra-org/lambda-N)
+    (define-key hydra-org/keymap "p" 'hydra-org/previous-line)
+    (define-key hydra-org/keymap "P" 'hydra-org/lambda-P)
+    (define-key hydra-org/keymap "u" 'hydra-org/undo-tree-undo)
+    (define-key hydra-org/keymap "U" 'hydra-org/undo-tree-visualize)
+    (define-key hydra-org/keymap "v" 'hydra-org/set-mark-command)
+    (define-key hydra-org/keymap "V" 'hydra-org/select-current-line)
+    (define-key hydra-org/keymap "x" 'hydra-org/delete-char)
+    (define-key hydra-org/keymap "X" 'hydra-org/delete-backward-char)
+    (define-key hydra-org/keymap "y" 'hydra-org/yank) 
+
+    (define-key hydra-org/keymap "o" 'hydra-org/window-movement/body-and-exit)
+    (define-key hydra-org/keymap "SPC" 'hydra-org/spacehydra-movement/body-and-exit)
+    (define-key hydra-org/keymap "q" nil)    
+
+    (if (equal major-mode 'org-mode)
+      (progn
+        (define-key hydra-org/keymap "il" 'hydra-org/lambda-il)
+        (define-key hydra-org/keymap "t" 'hydra-org/org-todo)
+        (define-key hydra-org/keymap "." 'hydra-org/org-time-stamp)
+        (define-key hydra-org/keymap "<left>" 'hydra-org/org-metaleft)
+        (define-key hydra-org/keymap "<right>" 'hydra-org/org-metaright)
+        (define-key hydra-org/keymap "<up>" 'hydra-org/org-metaup)
+        (define-key hydra-org/keymap "<down>" 'hydra-org/org-metadown)
+        (define-key hydra-org/keymap "<tab>" 'hydra-org/org-cycle)
+      )
+      (progn
+        (define-key hydra-org/keymap "il" nil)
+        (define-key hydra-org/keymap "t" nil)
+        (define-key hydra-org/keymap "." nil)
+        (define-key hydra-org/keymap "<left>" nil)
+        (define-key hydra-org/keymap "<right>" nil)
+        (define-key hydra-org/keymap "<up>" nil)
+        (define-key hydra-org/keymap "<down>" nil)
+        (define-key hydra-org/keymap "<tab>" nil)
+      )
+    )
+  )
+)
+#+END_SRC
