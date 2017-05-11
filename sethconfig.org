@@ -528,71 +528,88 @@ so that I could conveniently move this into the same file.
 Much like my [[AucTeX]] configuration, I don't really know why
 some of this is in here or what it does. 
 #+begin_src emacs-lisp :tangle yes
-  
-  (setq mu4e-maildir "~/Maildir")
-  
-  (setq mu4e-drafts-folder "/Gmail/[Gmail].Drafts")
-  (setq mu4e-sent-folder   "/Gmail/[Gmail].Sent Mail")
-  (setq mu4e-trash-folder  "/Gmail/[Gmail].Trash")
-  
-  (setq mu4e-sent-messages-behavior 'sent)
-  
-  (setq mu4e-maildir-shortcuts
-      '( ("/Gmail/INBOX"     . ?i)
-         ("/Outlook/INBOX"   . ?e)))
-  
-  ;; allow for updating mail using 'U' in the main view:
-  (setq mu4e-get-mail-command "/usr/local/bin/offlineimap")
-  (setq mu4e-update-interval 180)
-  (setq mu4e-split-view 'horizontal)
-  (setq mu4e-headers-visible-lines 14)
-  
-  (setq mu4e-headers-fields
-      '( (:human-date    .  12)
-         (:flags         .   6)
-         (:from          .  22)
-         (:to            .  22)
-         (:subject       .  nil)))
-  
-  (add-to-list 'mu4e-bookmarks
-  '("\"maildir:/Gmail/[Gmail].Sent Mail\" date:8w..now OR \"maildir:/Outlook/Sent\" date:8w..now" "All sent" ?s))
-  (add-to-list 'mu4e-bookmarks
-  	     '("\"maildir:/Gmail/INBOX\" date:4w..now OR \"maildir:/Outlook/INBOX\" date:4w..now" "All mail" ?a))
-  
-  
-   
-  ;; something about ourselves
-  
-  (setq message-signature nil)
-  (setq message-signature-file "~/.emacs.d/.signature")
-  (setq mu4e-compose-signature-auto-include nil)
-  (setq mu4e-compose-signature (file-string "~/.emacs.d/.signature"))
-  (setq mu4e-compose-dont-reply-to-self t)
-  
-  (setq starttls-gnutls-program "/usr/local/bin/gnutls-cli")
-  
-  (require 'smtpmail)
-  
-  (setq message-kill-buffer-on-exit t)
-  
-  (defun my-mu4e-set-account ()
-    "Set the account for composing a message."
-    (let* ((account
-            (if mu4e-compose-parent-message
-                (let ((maildir (mu4e-message-field mu4e-compose-parent-message :maildir)))
-                  (string-match "/\\(.*?\\)/" maildir)
-                  (match-string 1 maildir))
-              (completing-read (format "Compose with account: (%s) "
-                                       (mapconcat #'(lambda (var) (car var))
-                                                  my-mu4e-account-alist "/"))
-                               (mapcar #'(lambda (var) (car var)) my-mu4e-account-alist)
-                               nil t nil nil (caar my-mu4e-account-alist))))
-           (account-vars (cdr (assoc account my-mu4e-account-alist))))
-      (if account-vars
-          (mapc #'(lambda (var)
-                    (set (car var) (cadr var)))
-                account-vars)
-        (error "No email account found"))))
+(cond 
+  (
+    (eq system-type 'windows-nt)
+  )
+  (
+    (eq system-type 'darwin)
+
+    (setq mu4e-maildir "~/Maildir")
+    
+    (setq mu4e-drafts-folder "/Gmail/[Gmail].Drafts")
+    (setq mu4e-sent-folder   "/Gmail/[Gmail].Sent Mail")
+    (setq mu4e-trash-folder  "/Gmail/[Gmail].Trash")
+    
+    (setq mu4e-sent-messages-behavior 'sent)
+    
+    (setq mu4e-maildir-shortcuts
+      '(("/Gmail/INBOX"     . ?i)
+        ("/Outlook/INBOX"   . ?e)
+      )
+    )
+    
+    (setq mu4e-get-mail-command "/usr/local/bin/offlineimap")
+    (setq mu4e-update-interval 180)
+    (setq mu4e-split-view 'horizontal)
+    (setq mu4e-headers-visible-lines 14)
+    
+    (setq mu4e-headers-fields
+      '((:human-date    .  12)
+        (:flags         .   6)
+        (:from          .  22)
+        (:to            .  22)
+        (:subject       .  nil)
+      )
+    )
+
+    (add-to-list 'mu4e-bookmarks
+      '("\"maildir:/Gmail/[Gmail].Sent Mail\" date:8w..now OR \"maildir:/Outlook/Sent\" date:8w..now" "All sent" ?s))
+    (add-to-list 'mu4e-bookmarks
+      '("\"maildir:/Gmail/INBOX\" date:4w..now OR \"maildir:/Outlook/INBOX\" date:4w..now" "All mail" ?a))
+
+    
+    (setq message-signature nil)
+    (setq message-signature-file "~/.emacs.d/.signature")
+    (setq mu4e-compose-signature-auto-include nil)
+    (setq mu4e-compose-signature (file-string "~/.emacs.d/.signature"))
+    (setq mu4e-compose-dont-reply-to-self t)
+    
+    (setq starttls-gnutls-program "/usr/local/bin/gnutls-cli")
+    
+    (require 'smtpmail)
+    
+    (setq message-kill-buffer-on-exit t)
+    
+    (defun my-mu4e-set-account ()
+      "Set the account for composing a message."
+      (let* ((account
+        (if mu4e-compose-parent-message
+          (let ((maildir (mu4e-message-field mu4e-compose-parent-message :maildir)))
+            (string-match "/\\(.*?\\)/" maildir)
+            (match-string 1 maildir)
+          )
+          (completing-read (format "Compose with account: (%s) "
+            (mapconcat 
+              #'(lambda (var) (car var))
+              my-mu4e-account-alist "/"
+            )
+          )
+          (mapcar 
+            #'(lambda (var) (car var))
+            my-mu4e-account-alist
+          )
+          nil t nil nil (caar my-mu4e-account-alist)
+        )
+      ))
+      (account-vars (cdr (assoc account my-mu4e-account-alist)))
+    )
+    (if account-vars
+      (mapc #'(lambda (var) (set (car var) (cadr var))) account-vars)
+        (error "No email account found")
+      )
+    )
+  )
   
   (add-hook 'mu4e-compose-pre-hook 'my-mu4e-set-account)
   (add-hook 'mu4e-compose-mode-hook 'flyspell-mode)
@@ -604,11 +621,17 @@ some of this is in here or what it does.
     (let (buffers)
       (save-current-buffer
         (dolist (buffer (buffer-list t))
-  	(set-buffer buffer)
-  	(when (and (derived-mode-p 'message-mode)
-  	  (null message-sent-message-via))
-  	  (push (buffer-name buffer) buffers))))
-      (nreverse buffers)))
+          (set-buffer buffer)
+  	  (when (and (derived-mode-p 'message-mode)
+  	      (null message-sent-message-via)
+            )
+            (push (buffer-name buffer) buffers)
+          )
+        )
+      )
+      (nreverse buffers)
+    )
+  )
   
   (setq gnus-dired-mail-mode 'mu4e-user-agent)
   (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
@@ -619,11 +642,13 @@ some of this is in here or what it does.
     '("ViewInBrowser" . mu4e-action-view-in-browser) t)
   (add-to-list 'helm-find-files-actions
     '("Attach files for mu4e" .
-      helm-mu4e-attach) t
+      helm-mu4e-attach
+    ) t
   )
   
   (defun helm-mu4e-attach (_file)
-    (gnus-dired-attach (helm-marked-candidates)))
+    (gnus-dired-attach (helm-marked-candidates))
+  )
   (require 'helm-mu)
   (setq mu4e-hide-index-messages 1)
   
@@ -635,6 +660,9 @@ some of this is in here or what it does.
   
   (require 'mu4e-contrib) 
   (setq mu4e-html2text-command 'mu4e-shr2text) 
+  )
+)
+
 #+end_src
 ** Org
 This is not yet up to speed with my previous configuration.
@@ -730,3 +758,8 @@ This command is convenient when reading novel, documentation."
       (set-window-margins nil 0 (- (window-body-width) fill-column))
     (set-window-margins nil 0 0) ) )
 #+end_src
+
+#+BEGIN_SRC emacs-lisp :tangle yes
+
+
+#+END_SRC
