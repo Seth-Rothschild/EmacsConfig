@@ -166,11 +166,16 @@ want it set up. I need
 + Movement commands inside of a window 
 + Movement commands between windows
 + Functions where I need easy access 
-Something I didn't expect to be fundamental was that the keybinding all overlap. That is, it turned out to be important that I could get from spacehydra to movement commands and back easily. Open questions:
+Something I didn't expect to be fundamental was that the
+keybinding all overlap. That is, it turned out to be
+important that I could get from spacehydra to movement
+commands and back easily. Open questions:
 
-1. There's currently some weirdness around using q as an escape key.
-2. Is it important to have a newline above and below command?
-3. What commands would be unobtrusive for windows and space?
+1. Using q as quit interferes with some default window quitting.
+2. How to make hints show up correctly for the conditional hydra?
+3. How do I want the cursor or mode line to change when in
+   one of the three major hydras?
+
      
 #+begin_src emacs-lisp :tangle yes
 (defun select-current-line ()
@@ -358,11 +363,13 @@ Something I didn't expect to be fundamental was that the keybinding all overlap.
 
 #+end_src
 
-
-#+end_src 
 ** Packages
 *** AucTeX 
-This is not yet up to date or clean.
+This section needs serious cleaning. Much of it is OS
+specific and I'm not sure what half of it does or why it's
+here in the first place. Seems like a good project for a
+weekend.
+
 #+begin_src emacs-lisp :tangle yes
   (setq TeX-auto-save t)
   (setq TeX-parse-self t)
@@ -410,7 +417,8 @@ This is not yet up to date or clean.
 #+end_src
 *** GAP
 GAP and Pari are here for the same reason, would it be
-reasonable for them to be in the same subsection?
+reasonable for them to be in the same subsection? I should
+include links to both projects.
 #+BEGIN_SRC emacs-lisp :tangle yes
   (autoload 'gap-mode "gap-mode" "Gap editing mode" t)
   (setq auto-mode-alist (append (list '("\\.g$" . gap-mode)
@@ -447,6 +455,7 @@ reasonable for them to be in the same subsection?
 (setq magit-repository-directories '("~/Desktop/Repositories"))
 #+end_src
 *** Multiple Cursors 
+This is in sore need of a hydra. I wonder if it works with =artist-mode=?
 #+begin_src emacs-lisp :tangle yes
   (global-set-key (kbd "C->") 'mc/mark-next-like-this)
   (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
@@ -503,8 +512,9 @@ Make a box around a title:
   (insert "+")
 )
 #+end_src
-Kill the mu4e update process when it gets stuck. Figuring
-out /why/ it gets stuck is a problem for another day...
+Kill the mu4e update process when it gets stuck. This hasn't
+been a problem since the offlineimap update but there's
+still an error thrown. A problem for another day.
 #+begin_src emacs-lisp :tangle yes
 (defun mu4e-kill-update-process ()
   (interactive)
@@ -512,10 +522,11 @@ out /why/ it gets stuck is a problem for another day...
 )
 #+end_src
 ** Mu4e
-My configuration for mu4e is extensive. One advantage of
-moving this configuration to =org= is that I can put the
-entirety of this configuration into the same file and then
-hide the subtree. This section needs cleaning.
+My configuration for mu4e is extensive and ugly. It used to
+be in its own file. One of the big reasons I moved to org is
+so that I could conveniently move this into the same file.
+Much like my [[AucTeX]] configuration, I don't really know why
+some of this is in here or what it does. 
 #+begin_src emacs-lisp :tangle yes
   
   (setq mu4e-maildir "~/Maildir")
@@ -626,7 +637,9 @@ hide the subtree. This section needs cleaning.
   (setq mu4e-html2text-command 'mu4e-shr2text) 
 #+end_src
 ** Org
-General configuration: Not yet done and not yet clean. Org mode hydra defined above.
+This is not yet up to speed with my previous configuration.
+Much of how I interact with =org= is handled by the
+conditional hydra above.
 #+BEGIN_SRC emacs-lisp :tangle yes
 (setq org-capture-templates '(
     ("t" "TODO capture"
@@ -647,9 +660,13 @@ General configuration: Not yet done and not yet clean. Org mode hydra defined ab
 (setq org-todo-keyword-faces
   '(("TODO" . org-warning) ("WAIT" . "blue")))
 #+END_SRC
-I find that I like making throwaway todo lists when I have a lot of things that need doing. I've tried an overarching org setup in the past but it seems to not stick. Instead of trying that again, I'm going to try to enhance the habits I tend towards naturally.
-
-Here I only have two captures: a TODO without a link and a TODO with one. The first two functions are slightly modified from [[http://www.howardism.org/Technical/Emacs/journaling-org.html]]
+I find that I like making throwaway todo lists when I have a
+lot of things that need doing. I've tried an overarching org
+setup in the past but it seems to not stick. Instead of
+trying that again, I'm going to try to enhance the habits I
+tend towards naturally. The first two functions are slightly
+modified from
+[[http://www.howardism.org/Technical/Emacs/journaling-org.html]]
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun get-TODO-file-today ()
   "Return filename for today's journal entry."
@@ -702,9 +719,8 @@ here until I either find a home for them or delete them.
 ** Reading
 From [[http:ergoemacs.com/emacs/emacs_make_modern.html]]
 
-This is clearly a step in the right direction. Maybe I need
-to look more into this with =visual-line-mode= so that I can
-stop filling everything with =M-q=.
+This has the potential to be really nice, but I need to
+figure out how I want to configure =visual-line-mode= first.
 #+begin_src emacs-lisp :tangle yes
 (defun xah-toggle-margin-right ()
   "Toggle the right margin between `fill-column' or window width.
@@ -714,125 +730,3 @@ This command is convenient when reading novel, documentation."
       (set-window-margins nil 0 (- (window-body-width) fill-column))
     (set-window-margins nil 0 0) ) )
 #+end_src
-** Conditional Hydra
-The goal is to have a /single/ hydra for movement which has different commands based on environment. Something like this will work: can define the actual keys for the given commands as the hint for the hydra in a massive conditional statement.
-#+BEGIN_SRC emacs-lisp :tangle yes
-(defhydra nomodifier-movement ()
-   "Movement Hydra"
-  ("a" beginning-of-line)
-  ("A" backward-sentence)
-  ("b" backward-char)
-  ("B" backward-word)
-  ("dl" delete-char)
-  ("dw" kill-word)
-  ("dd" kill-whole-line)
-  ("dr" kill-region)
-  ("e" end-of-line)
-  ("E" forward-sentence)
-  ("f" forward-char)
-  ("F" forward-word)
-  ("n" next-line)
-  ("N" (next-line 5))
-  ("p" previous-line)
-  ("P" (previous-line 5))
-  ("u" undo-tree-undo)
-  ("U" undo-tree-visualize)
-  ("v" set-mark-command)
-  ("V" select-current-line)
-  ("x" delete-char)
-  ("X" delete-backward-char)
-  ("y" yank) 
-  
-  ("il" (progn (newline)
-    (insert-string "<s")
-    (org-try-structure-completion)
-    (insert-string "emacs-lisp :tangle yes")
-    (next-line)
-  ))
-  ("t" org-todo)
-  ("." org-time-stamp)
-  ("<left>" org-metaleft)
-  ("<right>" org-metaright)
-  ("<up>" org-metaup)
-  ("<down>" org-metadown)
-  ("<tab>" org-cycle)
-
-  ("cc" TeX-command-master)
-  ("cv" TeX-view)
-  ("ce" LaTeX-environment)
-  ("cs" LaTeX-section)
-  
-  ("o" window-movement/body :exit t)
-  ("SPC" spacehydra-movement/body :exit t)
-  ("q" nil)
-)
-
-(setq nomodifier-movement/hint
-  '(prog1 (eval (hydra--format nil '(nil nil :hint nil) "\n" nomodifier-movement/heads))
-    (define-key nomodifier-movement/keymap "a" 'nomodifier-movement/beginning-of-line)
-    (define-key nomodifier-movement/keymap "A" 'nomodifier-movement/backward-sentence)
-    (define-key nomodifier-movement/keymap "b" 'nomodifier-movement/backward-char)
-    (define-key nomodifier-movement/keymap "B" 'nomodifier-movement/backward-word)
-    (define-key nomodifier-movement/keymap "dl" 'nomodifier-movement/delete-char)
-    (define-key nomodifier-movement/keymap "dw" 'nomodifier-movement/kill-word)
-    (define-key nomodifier-movement/keymap "dd" 'nomodifier-movement/kill-whole-line)
-    (define-key nomodifier-movement/keymap "dr" 'nomodifier-movement/kill-region)
-    (define-key nomodifier-movement/keymap "e" 'nomodifier-movement/end-of-line)
-    (define-key nomodifier-movement/keymap "E" 'nomodifier-movement/forward-sentence)
-    (define-key nomodifier-movement/keymap "f" 'nomodifier-movement/forward-char)
-    (define-key nomodifier-movement/keymap "F" 'nomodifier-movement/forward-word)
-    (define-key nomodifier-movement/keymap "n" 'nomodifier-movement/next-line)
-    (define-key nomodifier-movement/keymap "N" 'nomodifier-movement/lambda-N)
-    (define-key nomodifier-movement/keymap "p" 'nomodifier-movement/previous-line)
-    (define-key nomodifier-movement/keymap "P" 'nomodifier-movement/lambda-P)
-    (define-key nomodifier-movement/keymap "u" 'nomodifier-movement/undo-tree-undo)
-    (define-key nomodifier-movement/keymap "U" 'nomodifier-movement/undo-tree-visualize)
-    (define-key nomodifier-movement/keymap "v" 'nomodifier-movement/set-mark-command)
-    (define-key nomodifier-movement/keymap "V" 'nomodifier-movement/select-current-line)
-    (define-key nomodifier-movement/keymap "x" 'nomodifier-movement/delete-char)
-    (define-key nomodifier-movement/keymap "X" 'nomodifier-movement/delete-backward-char)
-    (define-key nomodifier-movement/keymap "y" 'nomodifier-movement/yank) 
-
-    (define-key nomodifier-movement/keymap "o" 'nomodifier-movement/window-movement/body-and-exit)
-    (define-key nomodifier-movement/keymap "SPC" 'nomodifier-movement/spacehydra-movement/body-and-exit)
-    (define-key nomodifier-movement/keymap "q" nil)    
-
-    (if (equal major-mode 'org-mode)
-      (progn
-        (define-key nomodifier-movement/keymap "il" 'nomodifier-movement/lambda-il)
-        (define-key nomodifier-movement/keymap "t" 'nomodifier-movement/org-todo)
-        (define-key nomodifier-movement/keymap "." 'nomodifier-movement/org-time-stamp)
-        (define-key nomodifier-movement/keymap "<left>" 'nomodifier-movement/org-metaleft)
-        (define-key nomodifier-movement/keymap "<right>" 'nomodifier-movement/org-metaright)
-        (define-key nomodifier-movement/keymap "<up>" 'nomodifier-movement/org-metaup)
-        (define-key nomodifier-movement/keymap "<down>" 'nomodifier-movement/org-metadown)
-        (define-key nomodifier-movement/keymap "<tab>" 'nomodifier-movement/org-cycle)
-      )
-      (progn
-        (define-key nomodifier-movement/keymap "il" nil)
-        (define-key nomodifier-movement/keymap "t" nil)
-        (define-key nomodifier-movement/keymap "." nil)
-        (define-key nomodifier-movement/keymap "<left>" nil)
-        (define-key nomodifier-movement/keymap "<right>" nil)
-        (define-key nomodifier-movement/keymap "<up>" nil)
-        (define-key nomodifier-movement/keymap "<down>" nil)
-        (define-key nomodifier-movement/keymap "<tab>" nil)
-      )
-    )
-    (if (equal major-mode 'latex-mode)
-      (progn
-        (define-key nomodifier-movement/keymap "cc" 'nomodifier-movement/TeX-command-master)
-        (define-key nomodifier-movement/keymap "cv" 'nomodifier-movement/Tex-view)
-        (define-key nomodifier-movement/keymap "ce" 'nomodifier-movement/LaTeX-environment)
-        (define-key nomodifier-movement/keymap "cs" 'nomodifier-movement/LaTeX-section)
-      )
-      (progn
-        (define-key nomodifier-movement/keymap "cc" nil)
-        (define-key nomodifier-movement/keymap "cv" nil)
-        (define-key nomodifier-movement/keymap "ce" nil)
-        (define-key nomodifier-movement/keymap "cs" nil)
-      )
-    )
-  )
-)
-#+END_SRC
