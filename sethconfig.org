@@ -333,6 +333,7 @@ commands and back easily. Open questions:
   ("c" org-capture "capture")
   ("d" dired) 
   ("fa" helm-ag "helm-ag")
+  ("fr" helm-ag-project-root)
   ("ff" helm-find-files)
   ("hf" describe-function)
   ("hi" info)
