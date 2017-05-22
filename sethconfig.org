@@ -183,11 +183,7 @@ keybinding all overlap. That is, it turned out to be
 important that I could get from spacehydra to movement
 commands and back easily. Open questions:
 
-1. Is q a good idea? Currently the letter passes through like insert mode
-2. How to make hints show up correctly for the conditional hydra?
-3. How do I want the cursor or mode line to change when in 
-   one of the three major hydras?
-
+1. How to make hints show up correctly for the conditional hydra?
      
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun select-current-line ()
@@ -246,7 +242,7 @@ commands and back easily. Open questions:
   
   ("o" window-movement/body :exit t)
   ("SPC" spacehydra-movement/body :exit t)
-  ("q" nil)
+  ("q" nil :exit t)
 )
 
 (setq nomodifier-movement/hint
@@ -340,7 +336,7 @@ commands and back easily. Open questions:
   ("SPC" spacehydra-movement/body :exit t)
   ("n" nomodifier-movement/body :exit t)
   ("p" nomodifier-movement/body :exit t)
-  ("q" nil)
+  ("q" nil :exit t)
 )
 
 
@@ -372,7 +368,7 @@ commands and back easily. Open questions:
   ("p" nomodifier-movement/body :exit t)
   ("o" window-movement/body :exit t)
 
-  ("q" nil)
+  ("q" nil :exit t)
 )
 
 (key-chord-mode 1)
