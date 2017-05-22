@@ -35,7 +35,7 @@ homebrew. I hadn't considered modifying =custom-file=, but
 I've really liked it since it keeps the clutter out of this
 file.
 
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/"))
 (package-initialize)             
@@ -57,14 +57,14 @@ file.
 ;;	/usr/local/bin/emacsclient -a "" -n "$f"
 ;;  done
 ;; as EmacsClient.app, and set that as the default application to open things
-#+end_src
+#+END_SRC
 
 *** Secrets
 So that I can display this publically, I've moved personal
 information to another file. That file is loaded here.
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
   (load-file "~/.emacs.d/personal.el")
-#+end_src
+#+END_SRC
 
 ** Appearance 
 Fill column is set small right now. If I end up liking margin changes
@@ -74,7 +74,7 @@ so small.
 This section is mostly "common sense" changes for how I
 expected emacs to act. I've turned off the bell, changed to
 =y-or-n= and disabled automatic indenting. 
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (require 'recentf)
 (which-key-mode)
 (require 'dired-x)
@@ -90,12 +90,12 @@ expected emacs to act. I've turned off the bell, changed to
 (setq read-buffer-completion-ignore-case t)
 (setq backup-directory-alist '(("." . "~/.emacs.d/backups")))
 (setq recentf-max-saved-items 150)
-#+end_src
+#+END_SRC
 I use dired-x to clean up my =.tex= folders and make them a
 little easier to read from emacs. The only thing I might
 want to see again are files that begin with a dot, so I
 might modify this later.  
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (setq default-directory "~/")
 (setq dired-omit-files 
   (concat dired-omit-files
@@ -125,17 +125,23 @@ might modify this later.
        (lambda () (interactive)
          (let ((fn (dired-get-file-for-visit)))
            (start-process "default-app" nil "open" fn))))))
-#+end_src
+#+END_SRC
 ** Movement
 *** Helm
 These replace the ordinary emacs functions with their =helm=
 counterparts. I completely bypassed these keybindings while
 using evil mode and will do the same with =hydra= below.
 
-Of the helm functions, =helm-show-kill-ring= and =helm-M-X= might be
-the only keybindings I use. I'd also like to
-incorporate =helm-swoop= but I'm unsure about it still.
-#+begin_src emacs-lisp :tangle yes
+Of the helm functions, =helm-show-kill-ring= and =helm-M-X=
+might be the only keybindings I use. In the helm spirit of
+seeing things =helm-swoop= is really nice. It's not quite a
+natural part of my workflow yet. I would like to
+1. Find a place where I would actually use helm-multi-swoop in a natural way
+2. Find a way to more efficiently use edit mode.
+   + Need better keybinds for edit mode
+   + Need to automatically select the swooped text when entering edit mode 
+
+#+BEGIN_SRC emacs-lisp :tangle yes
 (require 'helm)
 (require 'helm-config)
 (helm-mode 1)
@@ -157,7 +163,13 @@ incorporate =helm-swoop= but I'm unsure about it still.
 
 (global-set-key (kbd "M-x") 'helm-M-x)
 (global-set-key (kbd "M-y") 'helm-show-kill-ring)
-#+end_src
+
+(use-package helm-swoop
+  :bind
+  ("C-s" . helm-swoop)
+)
+(setq helm-swoop-pre-input-function (lambda () ""))
+#+END_SRC
 *** Hydra
 This is moving in the right direction, though I think the
 hydra body keybinding for windows and spacehydra might
@@ -171,21 +183,24 @@ keybinding all overlap. That is, it turned out to be
 important that I could get from spacehydra to movement
 commands and back easily. Open questions:
 
-1. Using q as quit interferes with some default window quitting.
+1. Is q a good idea? Currently the letter passes through like insert mode
 2. How to make hints show up correctly for the conditional hydra?
-3. How do I want the cursor or mode line to change when in
+3. How do I want the cursor or mode line to change when in 
    one of the three major hydras?
 
      
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (defun select-current-line ()
   "Select the current line"
   (interactive)
   (end-of-line) ; move to end of line
   (set-mark (line-beginning-position)))
 
-(defhydra nomodifier-movement ()
-   "Movement Hydra"
+(defhydra nomodifier-movement (:pre
+  (set-cursor-color "#990000")
+  :post
+  (set-cursor-color "#000000"))
+  "Movement Hydra"
   ("a" beginning-of-line)
   ("A" backward-sentence)
   ("b" backward-char)
@@ -303,7 +318,10 @@ commands and back easily. Open questions:
   )
 )
 
-(defhydra window-movement ()
+(defhydra window-movement (:pre
+  (set-cursor-color "#009900")
+  :post
+  (set-cursor-color "#000000"))
   "Window Movement"
   ("<left>" windmove-left)
   ("<right>" windmove-right)
@@ -326,7 +344,10 @@ commands and back easily. Open questions:
 )
 
 
-(defhydra spacehydra-movement (:exit t)
+(defhydra spacehydra-movement (:exit t :pre
+  (set-cursor-color "#000099")
+  :post
+  (set-cursor-color "#000000"))
   "Space-Hydra"
   ("a" org-agenda "agenda")
   ("b" helm-mini)
@@ -362,7 +383,7 @@ commands and back easily. Open questions:
 
 (key-chord-define-global "  " 'spacehydra-movement/body)
 
-#+end_src
+#+END_SRC
 
 ** Packages
 *** AucTeX 
@@ -371,7 +392,7 @@ specific and I'm not sure what half of it does or why it's
 here in the first place. Seems like a good project for a
 weekend.
 
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
   (setq TeX-auto-save t)
   (setq TeX-parse-self t)
   (setq-default TeX-master nil)
@@ -415,7 +436,7 @@ weekend.
   )
 
   (add-hook 'LaTeX-mode-hook #'outline-minor-mode)
-#+end_src
+#+END_SRC
 *** GAP
 GAP and Pari are here for the same reason, would it be
 reasonable for them to be in the same subsection? I should
@@ -440,7 +461,7 @@ include links to both projects.
     auto-mode-alist))
 #+END_SRC
 *** Jabber 
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
   (require 'jabber)
   (setq 
     jabber-roster-line-format " %c %-25n %u %-8s"
@@ -450,19 +471,19 @@ include links to both projects.
     jabber-backlog-number 40
     jabber-backlog-days 30
   )
-#+end_src
+#+END_SRC
 *** Magit
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (setq magit-repository-directories '("~/Desktop/Repositories"))
-#+end_src
+#+END_SRC
 *** Multiple Cursors 
 This is in sore need of a hydra. I wonder if it works with =artist-mode=?
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
   (global-set-key (kbd "C->") 'mc/mark-next-like-this)
   (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
-#+end_src
+#+END_SRC
 *** Twitter
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
   (require 'twittering-mode)
   (defun twitter-open-link ()
     (twittering-goto-next-thing t)
@@ -478,17 +499,17 @@ This is in sore need of a hydra. I wonder if it works with =artist-mode=?
       nil
     )
   )
-#+end_src
+#+END_SRC
 ** Lisp
 From [[wikemacs.org/wiki/Emacs_Lisp_Cookbook]]:
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (defun file-string (file)
     "Read the contents of a file and return as a string."
     (with-current-buffer (find-file-noselect file)
       (buffer-string)))
-#+end_src
+#+END_SRC
 Make a box around a title:
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (defun boxify ()
   (interactive)
   (beginning-of-line)
@@ -512,23 +533,23 @@ Make a box around a title:
   (kill-line)
   (insert "+")
 )
-#+end_src
+#+END_SRC
 Kill the mu4e update process when it gets stuck. This hasn't
 been a problem since the offlineimap update but there's
 still an error thrown. A problem for another day.
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (defun mu4e-kill-update-process ()
   (interactive)
   (kill-process " *mu4e-update*")
 )
-#+end_src
+#+END_SRC
 ** Mu4e
 My configuration for mu4e is extensive and ugly. It used to
 be in its own file. One of the big reasons I moved to org is
 so that I could conveniently move this into the same file.
 Much like my [[AucTeX]] configuration, I don't really know why
 some of this is in here or what it does. 
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (cond 
   (
     (eq system-type 'windows-nt)
@@ -664,7 +685,7 @@ some of this is in here or what it does.
   )
 )
 
-#+end_src
+#+END_SRC
 ** Org
 This is not yet up to speed with my previous configuration.
 Much of how I interact with =org= is handled by the
@@ -735,22 +756,13 @@ here until I either find a home for them or delete them.
     (setq undo-tree-visualizer-diff t)))
 #+END_SRC
 ** Helm swoop
-#+BEGIN_SRC emacs-lisp :tangle yes
-(use-package helm-swoop
-  :bind
-  ("C-s" . helm-swoop)
-  :config
-  (progn
-    (define-key isearch-mode-map (kbd "M-i") 'helm-swoop-from-isearch)
-    (define-key helm-swoop-map (kbd "M-i") 'helm-multi-swoop-all-from-helm-swoop))
-)
-#+END_SRC
+
 ** Reading
 From [[http:ergoemacs.com/emacs/emacs_make_modern.html]]
 
 This has the potential to be really nice, but I need to
 figure out how I want to configure =visual-line-mode= first.
-#+begin_src emacs-lisp :tangle yes
+#+BEGIN_SRC emacs-lisp :tangle yes
 (defun xah-toggle-margin-right ()
   "Toggle the right margin between `fill-column' or window width.
 This command is convenient when reading novel, documentation."
@@ -758,7 +770,7 @@ This command is convenient when reading novel, documentation."
   (if (eq (cdr (window-margins)) nil)
       (set-window-margins nil 0 (- (window-body-width) fill-column))
     (set-window-margins nil 0 0) ) )
-#+end_src
+#+END_SRC
 
 #+BEGIN_SRC emacs-lisp :tangle yes
 
