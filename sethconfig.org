@@ -189,13 +189,15 @@ commands and back easily. Open questions:
 (defun select-current-line ()
   "Select the current line"
   (interactive)
-  (end-of-line) ; move to end of line
-  (set-mark (line-beginning-position)))
+  (end-of-line)
+  (set-mark (line-beginning-position))
+)
 
-(defhydra nomodifier-movement (:pre
-  (set-cursor-color "#990000")
-  :post
-  (set-cursor-color "#000000"))
+(defhydra nomodifier-movement (
+    :hint nil
+    :pre (set-cursor-color "#990000")
+    :post (set-cursor-color "#000000")
+  )
   "Movement Hydra"
   ("a" beginning-of-line)
   ("A" backward-sentence)
@@ -240,53 +242,81 @@ commands and back easily. Open questions:
   ("ce" LaTeX-environment)
   ("cs" LaTeX-section)
   
-  ("o" window-movement/body :exit t)
-  ("SPC" spacehydra-movement/body :exit t)
-  ("q" nil :exit t)
+  ("o" window-movement/body "Window movement" :exit t)
+  ("SPC" spacehydra-movement/body "Spacehydra" :exit t)
+  ("q" nil "Quit" :exit t)
+)
+
+(defun nomodifier-movement-basics ()
+  (define-key nomodifier-movement/keymap "a" 'nomodifier-movement/beginning-of-line)
+  (define-key nomodifier-movement/keymap "A" 'nomodifier-movement/backward-sentence)
+  (define-key nomodifier-movement/keymap "b" 'nomodifier-movement/backward-char)
+  (define-key nomodifier-movement/keymap "B" 'nomodifier-movement/backward-word)
+  (define-key nomodifier-movement/keymap "dl" 'nomodifier-movement/delete-char)
+  (define-key nomodifier-movement/keymap "dw" 'nomodifier-movement/kill-word)
+  (define-key nomodifier-movement/keymap "dd" 'nomodifier-movement/kill-whole-line)
+  (define-key nomodifier-movement/keymap "dr" 'nomodifier-movement/kill-region)
+  (define-key nomodifier-movement/keymap "e" 'nomodifier-movement/end-of-line)
+  (define-key nomodifier-movement/keymap "E" 'nomodifier-movement/forward-sentence)
+  (define-key nomodifier-movement/keymap "f" 'nomodifier-movement/forward-char)
+  (define-key nomodifier-movement/keymap "F" 'nomodifier-movement/forward-word)
+  (define-key nomodifier-movement/keymap "n" 'nomodifier-movement/next-line)
+  (define-key nomodifier-movement/keymap "N" 'nomodifier-movement/lambda-N)
+  (define-key nomodifier-movement/keymap "p" 'nomodifier-movement/previous-line)
+  (define-key nomodifier-movement/keymap "P" 'nomodifier-movement/lambda-P)
+  (define-key nomodifier-movement/keymap "u" 'nomodifier-movement/undo-tree-undo)
+  (define-key nomodifier-movement/keymap "U" 'nomodifier-movement/undo-tree-visualize)
+  (define-key nomodifier-movement/keymap "v" 'nomodifier-movement/set-mark-command)
+  (define-key nomodifier-movement/keymap "V" 'nomodifier-movement/select-current-line)
+  (define-key nomodifier-movement/keymap "x" 'nomodifier-movement/delete-char)
+  (define-key nomodifier-movement/keymap "X" 'nomodifier-movement/delete-backward-char)
+  (define-key nomodifier-movement/keymap "y" 'nomodifier-movement/yank) 
+  (define-key nomodifier-movement/keymap "o" 'nomodifier-movement/window-movement/body-and-exit)
+  (define-key nomodifier-movement/keymap "SPC" 'nomodifier-movement/spacehydra-movement/body-and-exit)
+  (define-key nomodifier-movement/keymap "q" nil)    
 )
 
 (setq nomodifier-movement/hint
-  '(prog1 (eval (hydra--format nil '(nil nil :hint nil) "\n" nomodifier-movement/heads))
-    (define-key nomodifier-movement/keymap "a" 'nomodifier-movement/beginning-of-line)
-    (define-key nomodifier-movement/keymap "A" 'nomodifier-movement/backward-sentence)
-    (define-key nomodifier-movement/keymap "b" 'nomodifier-movement/backward-char)
-    (define-key nomodifier-movement/keymap "B" 'nomodifier-movement/backward-word)
-    (define-key nomodifier-movement/keymap "dl" 'nomodifier-movement/delete-char)
-    (define-key nomodifier-movement/keymap "dw" 'nomodifier-movement/kill-word)
-    (define-key nomodifier-movement/keymap "dd" 'nomodifier-movement/kill-whole-line)
-    (define-key nomodifier-movement/keymap "dr" 'nomodifier-movement/kill-region)
-    (define-key nomodifier-movement/keymap "e" 'nomodifier-movement/end-of-line)
-    (define-key nomodifier-movement/keymap "E" 'nomodifier-movement/forward-sentence)
-    (define-key nomodifier-movement/keymap "f" 'nomodifier-movement/forward-char)
-    (define-key nomodifier-movement/keymap "F" 'nomodifier-movement/forward-word)
-    (define-key nomodifier-movement/keymap "n" 'nomodifier-movement/next-line)
-    (define-key nomodifier-movement/keymap "N" 'nomodifier-movement/lambda-N)
-    (define-key nomodifier-movement/keymap "p" 'nomodifier-movement/previous-line)
-    (define-key nomodifier-movement/keymap "P" 'nomodifier-movement/lambda-P)
-    (define-key nomodifier-movement/keymap "u" 'nomodifier-movement/undo-tree-undo)
-    (define-key nomodifier-movement/keymap "U" 'nomodifier-movement/undo-tree-visualize)
-    (define-key nomodifier-movement/keymap "v" 'nomodifier-movement/set-mark-command)
-    (define-key nomodifier-movement/keymap "V" 'nomodifier-movement/select-current-line)
-    (define-key nomodifier-movement/keymap "x" 'nomodifier-movement/delete-char)
-    (define-key nomodifier-movement/keymap "X" 'nomodifier-movement/delete-backward-char)
-    (define-key nomodifier-movement/keymap "y" 'nomodifier-movement/yank) 
-
-    (define-key nomodifier-movement/keymap "o" 'nomodifier-movement/window-movement/body-and-exit)
-    (define-key nomodifier-movement/keymap "SPC" 'nomodifier-movement/spacehydra-movement/body-and-exit)
-    (define-key nomodifier-movement/keymap "q" nil)    
-
-    (if (equal major-mode 'org-mode)
-      (progn
-        (define-key nomodifier-movement/keymap "il" 'nomodifier-movement/lambda-il)
-        (define-key nomodifier-movement/keymap "t" 'nomodifier-movement/org-todo)
-        (define-key nomodifier-movement/keymap "." 'nomodifier-movement/org-time-stamp)
-        (define-key nomodifier-movement/keymap "<left>" 'nomodifier-movement/org-metaleft)
-        (define-key nomodifier-movement/keymap "<right>" 'nomodifier-movement/org-metaright)
-        (define-key nomodifier-movement/keymap "<up>" 'nomodifier-movement/org-metaup)
-        (define-key nomodifier-movement/keymap "<down>" 'nomodifier-movement/org-metadown)
-        (define-key nomodifier-movement/keymap "<tab>" 'nomodifier-movement/org-cycle)
+ '(if (equal major-mode 'org-mode)
+    (prog1
+      (eval (hydra--format nil '(nil nil :hint nil) 
+          "\n [_il_]: Insert lisp block, [_t_]: Org TODO, _._: Org time stamp, [_<tab>_]: Org cycle, " 
+          nomodifier-movement/heads
+        )
       )
-      (progn
+      (nomodifier-movement-basics)
+      (define-key nomodifier-movement/keymap "il" 'nomodifier-movement/lambda-il)
+      (define-key nomodifier-movement/keymap "t" 'nomodifier-movement/org-todo)
+      (define-key nomodifier-movement/keymap "." 'nomodifier-movement/org-time-stamp)
+      (define-key nomodifier-movement/keymap "<left>" 'nomodifier-movement/org-metaleft)
+      (define-key nomodifier-movement/keymap "<right>" 'nomodifier-movement/org-metaright)
+      (define-key nomodifier-movement/keymap "<up>" 'nomodifier-movement/org-metaup)
+      (define-key nomodifier-movement/keymap "<down>" 'nomodifier-movement/org-metadown)
+      (define-key nomodifier-movement/keymap "<tab>" 'nomodifier-movement/org-cycle)
+    )
+    (if (equal major-mode 'latex-mode)
+      (prog1
+        (eval (hydra--format nil '(nil nil :hint nil) 
+            "\n [_cc_]: TeX Command Master, [_cv_]: TeX View, [_ce_]: LaTeX environment, [_cs_]: LaTeX section, " 
+            nomodifier-movement/heads
+          )
+        )
+        (nomodifier-movement-basics)
+        (define-key nomodifier-movement/keymap "cc" 'nomodifier-movement/TeX-command-master)
+        (define-key nomodifier-movement/keymap "cv" 'nomodifier-movement/Tex-view)
+        (define-key nomodifier-movement/keymap "ce" 'nomodifier-movement/LaTeX-environment)
+        (define-key nomodifier-movement/keymap "cs" 'nomodifier-movement/LaTeX-section)
+      )
+      (prog1
+        (eval (hydra--format nil '(nil nil :hint nil) 
+            "\n" nomodifier-movement/heads
+          )
+        )
+        (nomodifier-movement-basics)
+        (define-key nomodifier-movement/keymap "cc" nil)
+        (define-key nomodifier-movement/keymap "cv" nil)
+        (define-key nomodifier-movement/keymap "ce" nil)
+        (define-key nomodifier-movement/keymap "cs" nil)
         (define-key nomodifier-movement/keymap "il" nil)
         (define-key nomodifier-movement/keymap "t" nil)
         (define-key nomodifier-movement/keymap "." nil)
@@ -297,78 +327,73 @@ commands and back easily. Open questions:
         (define-key nomodifier-movement/keymap "<tab>" nil)
       )
     )
-    (if (equal major-mode 'latex-mode)
-      (progn
-        (define-key nomodifier-movement/keymap "cc" 'nomodifier-movement/TeX-command-master)
-        (define-key nomodifier-movement/keymap "cv" 'nomodifier-movement/Tex-view)
-        (define-key nomodifier-movement/keymap "ce" 'nomodifier-movement/LaTeX-environment)
-        (define-key nomodifier-movement/keymap "cs" 'nomodifier-movement/LaTeX-section)
-      )
-      (progn
-        (define-key nomodifier-movement/keymap "cc" nil)
-        (define-key nomodifier-movement/keymap "cv" nil)
-        (define-key nomodifier-movement/keymap "ce" nil)
-        (define-key nomodifier-movement/keymap "cs" nil)
-      )
-    )
   )
 )
 
-(defhydra window-movement (:pre
-  (set-cursor-color "#009900")
-  :post
-  (set-cursor-color "#000000"))
+(defhydra window-movement (
+    :hint nil
+    :columns 6
+    :pre
+    (set-cursor-color "#009900")
+    :post
+    (set-cursor-color "#000000")
+  )
   "Window Movement"
-  ("<left>" windmove-left)
-  ("<right>" windmove-right)
-  ("<down>" windmove-down)
-  ("<up>" windmove-up)
-  ("b" helm-mini)
-  ("B" (progn (other-window 1) (helm-mini)))
-  ("d" delete-window)
-  ("D" delete-other-windows)
+  ("<left>" windmove-left "Window left")
+  ("<right>" windmove-right "Window right")
+  ("<down>" windmove-down "Window down")
+  ("<up>" windmove-up "Window up")
+  ("b" helm-mini "Buffer")
+  ("B" (progn (other-window 1) (helm-mini)) "Buffer other")
+  ("d" delete-window "Delete")
+  ("D" delete-other-windows "Delete other")
   ("f" find-file)
   ("F" find-file-other-window)
   ("h" split-window-below)
   ("o" other-window)
   ("v" split-window-right)
 
-  ("SPC" spacehydra-movement/body :exit t)
+  ("SPC" spacehydra-movement/body "Spacehydra" :exit t)
   ("n" nomodifier-movement/body :exit t)
   ("p" nomodifier-movement/body :exit t)
-  ("q" nil :exit t)
+  ("q" nil "Quit" :exit t)
 )
 
 
-(defhydra spacehydra-movement (:exit t :pre
-  (set-cursor-color "#000099")
-  :post
-  (set-cursor-color "#000000"))
+(defhydra spacehydra-movement (
+    :hint nil
+    :columns 6
+    :exit t 
+    :pre
+    (set-cursor-color "#000099")
+    :post
+    (set-cursor-color "#000000")
+  )
   "Space-Hydra"
-  ("a" org-agenda "agenda")
+  ("a" org-agenda "Agenda")
   ("b" helm-mini)
-  ("c" org-capture "capture")
+  ("c" org-capture "Capture")
   ("d" dired) 
-  ("fa" helm-ag "helm-ag")
-  ("fr" helm-ag-project-root)
-  ("ff" helm-find-files)
+  ("fa" helm-ag "Find with ag")
+  ("fr" helm-ag-project-root "Find from root")
+  ("ff" helm-find-file "Find file")
   ("hf" describe-function)
   ("hi" info)
   ("hk" describe-key)
   ("hm" describe-mode)
   ("hv" describe-variable)
-  ("ls" org-store-link "store link")
-  ("li" org-insert-link "insert link")
-  ("s" save-buffer "save")
-  ("t" (find-file (TODO-file-today)) "todo")
-  ("m" magit-status "magit status")
-  ("x" helm-M-x)
+  ("ls" org-store-link "Store link")
+  ("li" org-insert-link "Insert link")
+  ("s" save-buffer "Save")
+  ("t" (find-file (TODO-file-today)) "Today's todo")
+  ("m" magit-status "Magit status")
+  ("x" M-x)
 
   ("n" nomodifier-movement/body :exit t)
   ("p" nomodifier-movement/body :exit t)
-  ("o" window-movement/body :exit t)
+  ("o" window-movement/body "Window movement" :exit t)
 
-  ("q" nil :exit t)
+  ("q" nil "Quit" :exit t)
 )
 
 (key-chord-mode 1)
