@@ -59,13 +59,6 @@ file.
 ;; as EmacsClient.app, and set that as the default application to open things
 #+END_SRC
 
-*** Secrets
-So that I can display this publically, I've moved personal
-information to another file. That file is loaded here.
-#+BEGIN_SRC emacs-lisp :tangle yes
-  (load-file "~/.emacs.d/personal.el")
-#+END_SRC
-
 ** Appearance 
 Fill column is set small right now. If I end up liking margin changes
 which are currently experimental, I might not need it quite
@@ -170,20 +163,20 @@ natural part of my workflow yet. I would like to
 )
 (setq helm-swoop-pre-input-function (lambda () ""))
 #+END_SRC
-*** Hydra
-This is moving in the right direction, though I think the
-hydra body keybinding for windows and spacehydra might
-change. Structurally, I think this is more or less how I
-want it set up. I need
+*** TODO Hydra
+This is moving in the right direction though it is far from
+settled. Structurally, I like the way it is set up. The main
+idea is that I have three distinct movement types in emacs:
 + Movement commands inside of a window 
 + Movement commands between windows
 + Functions where I need easy access 
-Something I didn't expect to be fundamental was that the
-keybinding all overlap. That is, it turned out to be
-important that I could get from spacehydra to movement
-commands and back easily. Open questions:
 
-1. How to make hints show up correctly for the conditional hydra?
+I think it's worth noting that the keybinding overlap is
+actually crucial for moving fluidly in emacs. That
+*necessitates* the use of a conditional hydra. If I
+start in an =.org= file and move to a =.tex= file, my keybindings
+should be different.
+
      
 #+BEGIN_SRC emacs-lisp :tangle yes
 (defun select-current-line ()
@@ -273,7 +266,7 @@ commands and back easily. Open questions:
   (define-key nomodifier-movement/keymap "y" 'nomodifier-movement/yank) 
   (define-key nomodifier-movement/keymap "o" 'nomodifier-movement/window-movement/body-and-exit)
   (define-key nomodifier-movement/keymap "SPC" 'nomodifier-movement/spacehydra-movement/body-and-exit)
-  (define-key nomodifier-movement/keymap "q" nil)    
+  (define-key nomodifier-movement/keymap "q" 'nomodifier-movement/nil)    
 )
 
 (setq nomodifier-movement/hint
@@ -350,6 +343,7 @@ commands and back easily. Open questions:
   ("f" find-file)
   ("F" find-file-other-window)
   ("h" split-window-below)
+  ("k" kill-buffer "Kill buffer")
   ("o" other-window)
   ("v" split-window-right)
 
@@ -577,6 +571,7 @@ some of this is in here or what it does.
   )
   (
     (eq system-type 'darwin)
+    (load-file "~/.emacs.d/personal.el")
 
     (setq mu4e-maildir "~/Maildir")
     
@@ -704,8 +699,15 @@ some of this is in here or what it does.
   (require 'mu4e-contrib) 
   (setq mu4e-html2text-command 'mu4e-shr2text) 
   )
+
 )
 
+#+END_SRC
+*** Secrets
+So that I can display this publically, I've moved personal
+email information and gpg stuff to another file. That file
+is loaded here.
+#+BEGIN_SRC emacs-lisp :tangle yes
 #+END_SRC
 ** Org
 This is not yet up to speed with my previous configuration.
@@ -727,7 +729,7 @@ conditional hydra above.
 (setq org-agenda-files (file-expand-wildcards "~/.emacs.d/org-files/*.org"))
 
 (setq org-todo-keywords
-  '((sequence "TODO" "|" "WAIT" "DONE")))
+  '((sequence "TODO" "|" "DONE" "WAIT")))
 (setq org-todo-keyword-faces
   '(("TODO" . org-warning) ("WAIT" . "blue")))
 #+END_SRC
