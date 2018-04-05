@@ -163,7 +163,7 @@ natural part of my workflow yet. I would like to
 )
 (setq helm-swoop-pre-input-function (lambda () ""))
 #+END_SRC
-*** TODO Hydra
+*** Hydra
 This is moving in the right direction though it is far from
 settled. Structurally, I like the way it is set up. The main
 idea is that I have three distinct movement types in emacs:
@@ -186,30 +186,35 @@ should be different.
   (set-mark (line-beginning-position))
 )
 
+
+
 (defhydra nomodifier-movement (
     :hint nil
     :pre (set-cursor-color "#990000")
-    :post (set-cursor-color "#000000")
+    :post (progn (set-cursor-color "#000000")
+                 (evil-mode 0))
   )
   "Movement Hydra"
   ("a" beginning-of-line)
   ("A" backward-sentence)
   ("b" backward-char)
   ("B" backward-word)
-  ("dl" delete-char)
-  ("dw" kill-word)
-  ("dd" kill-whole-line)
-  ("dr" kill-region)
+  ("d" evil-delete)
   ("e" end-of-line)
   ("E" forward-sentence)
-  ("f" forward-char)
-  ("F" forward-word)
+  ("f" evil-find-char)
+  ("F" evil-find-char-backward)
+  ("j" evil-forward-paragraph)
+  ("k" evil-backward-paragraph)
+  ("m" evil-jump-item)
   ("n" next-line)
   ("N" (next-line 5))
   ("p" previous-line)
   ("P" (previous-line 5))
+  ("r" evil-replace)
+  ("s" evil-search-forward)
   ("u" undo-tree-undo)
-  ("U" undo-tree-visualize)
+  ("U" undo-tree-redo)
   ("v" set-mark-command)
   ("V" select-current-line)
   ("x" delete-char)
@@ -222,105 +227,23 @@ should be different.
     (insert-string "emacs-lisp :tangle yes")
     (next-line)
   ))
+  ("ip" (progn (newline)
+    (insert-string "<s")
+    (org-try-structure-completion)
+    (insert-string "python :results output :session *Python* :tangle yes")
+    (next-line)
+  ))
+
   ("t" org-todo)
   ("." org-time-stamp)
   ("<left>" org-metaleft)
   ("<right>" org-metaright)
   ("<up>" org-metaup)
   ("<down>" org-metadown)
-  ("<tab>" org-cycle)
-
-  ("cc" TeX-command-master)
-  ("cv" TeX-view)
-  ("ce" LaTeX-environment)
-  ("cs" LaTeX-section)
   
   ("o" window-movement/body "Window movement" :exit t)
   ("SPC" spacehydra-movement/body "Spacehydra" :exit t)
   ("q" nil "Quit" :exit t)
-)
-
-(defun nomodifier-movement-basics ()
-  (define-key nomodifier-movement/keymap "a" 'nomodifier-movement/beginning-of-line)
-  (define-key nomodifier-movement/keymap "A" 'nomodifier-movement/backward-sentence)
-  (define-key nomodifier-movement/keymap "b" 'nomodifier-movement/backward-char)
-  (define-key nomodifier-movement/keymap "B" 'nomodifier-movement/backward-word)
-  (define-key nomodifier-movement/keymap "dl" 'nomodifier-movement/delete-char)
-  (define-key nomodifier-movement/keymap "dw" 'nomodifier-movement/kill-word)
-  (define-key nomodifier-movement/keymap "dd" 'nomodifier-movement/kill-whole-line)
-  (define-key nomodifier-movement/keymap "dr" 'nomodifier-movement/kill-region)
-  (define-key nomodifier-movement/keymap "e" 'nomodifier-movement/end-of-line)
-  (define-key nomodifier-movement/keymap "E" 'nomodifier-movement/forward-sentence)
-  (define-key nomodifier-movement/keymap "f" 'nomodifier-movement/forward-char)
-  (define-key nomodifier-movement/keymap "F" 'nomodifier-movement/forward-word)
-  (define-key nomodifier-movement/keymap "n" 'nomodifier-movement/next-line)
-  (define-key nomodifier-movement/keymap "N" 'nomodifier-movement/lambda-N)
-  (define-key nomodifier-movement/keymap "p" 'nomodifier-movement/previous-line)
-  (define-key nomodifier-movement/keymap "P" 'nomodifier-movement/lambda-P)
-  (define-key nomodifier-movement/keymap "u" 'nomodifier-movement/undo-tree-undo)
-  (define-key nomodifier-movement/keymap "U" 'nomodifier-movement/undo-tree-visualize)
-  (define-key nomodifier-movement/keymap "v" 'nomodifier-movement/set-mark-command)
-  (define-key nomodifier-movement/keymap "V" 'nomodifier-movement/select-current-line)
-  (define-key nomodifier-movement/keymap "x" 'nomodifier-movement/delete-char)
-  (define-key nomodifier-movement/keymap "X" 'nomodifier-movement/delete-backward-char)
-  (define-key nomodifier-movement/keymap "y" 'nomodifier-movement/yank) 
-  (define-key nomodifier-movement/keymap "o" 'nomodifier-movement/window-movement/body-and-exit)
-  (define-key nomodifier-movement/keymap "SPC" 'nomodifier-movement/spacehydra-movement/body-and-exit)
-  (define-key nomodifier-movement/keymap "q" 'nomodifier-movement/nil)    
-)
-
-(setq nomodifier-movement/hint
- '(if (equal major-mode 'org-mode)
-    (prog1
-      (eval (hydra--format nil '(nil nil :hint nil) 
-          "\n [_il_]: Insert lisp block, [_t_]: Org TODO, _._: Org time stamp, [_<tab>_]: Org cycle, " 
-          nomodifier-movement/heads
-        )
-      )
-      (nomodifier-movement-basics)
-      (define-key nomodifier-movement/keymap "il" 'nomodifier-movement/lambda-il)
-      (define-key nomodifier-movement/keymap "t" 'nomodifier-movement/org-todo)
-      (define-key nomodifier-movement/keymap "." 'nomodifier-movement/org-time-stamp)
-      (define-key nomodifier-movement/keymap "<left>" 'nomodifier-movement/org-metaleft)
-      (define-key nomodifier-movement/keymap "<right>" 'nomodifier-movement/org-metaright)
-      (define-key nomodifier-movement/keymap "<up>" 'nomodifier-movement/org-metaup)
-      (define-key nomodifier-movement/keymap "<down>" 'nomodifier-movement/org-metadown)
-      (define-key nomodifier-movement/keymap "<tab>" 'nomodifier-movement/org-cycle)
-    )
-    (if (equal major-mode 'latex-mode)
-      (prog1
-        (eval (hydra--format nil '(nil nil :hint nil) 
-            "\n [_cc_]: TeX Command Master, [_cv_]: TeX View, [_ce_]: LaTeX environment, [_cs_]: LaTeX section, " 
-            nomodifier-movement/heads
-          )
-        )
-        (nomodifier-movement-basics)
-        (define-key nomodifier-movement/keymap "cc" 'nomodifier-movement/TeX-command-master)
-        (define-key nomodifier-movement/keymap "cv" 'nomodifier-movement/Tex-view)
-        (define-key nomodifier-movement/keymap "ce" 'nomodifier-movement/LaTeX-environment)
-        (define-key nomodifier-movement/keymap "cs" 'nomodifier-movement/LaTeX-section)
-      )
-      (prog1
-        (eval (hydra--format nil '(nil nil :hint nil) 
-            "\n" nomodifier-movement/heads
-          )
-        )
-        (nomodifier-movement-basics)
-        (define-key nomodifier-movement/keymap "cc" nil)
-        (define-key nomodifier-movement/keymap "cv" nil)
-        (define-key nomodifier-movement/keymap "ce" nil)
-        (define-key nomodifier-movement/keymap "cs" nil)
-        (define-key nomodifier-movement/keymap "il" nil)
-        (define-key nomodifier-movement/keymap "t" nil)
-        (define-key nomodifier-movement/keymap "." nil)
-        (define-key nomodifier-movement/keymap "<left>" nil)
-        (define-key nomodifier-movement/keymap "<right>" nil)
-        (define-key nomodifier-movement/keymap "<up>" nil)
-        (define-key nomodifier-movement/keymap "<down>" nil)
-        (define-key nomodifier-movement/keymap "<tab>" nil)
-      )
-    )
-  )
 )
 
 (defhydra window-movement (
@@ -381,7 +304,7 @@ should be different.
   ("s" save-buffer "Save")
   ("t" (find-file (TODO-file-today)) "Today's todo")
   ("m" magit-status "Magit status")
-  ("x" M-x)
+  ("x" helm-M-x)
 
   ("n" nomodifier-movement/body :exit t)
   ("p" nomodifier-movement/body :exit t)
@@ -396,9 +319,9 @@ should be different.
 (global-unset-key (kbd "C-x o")) 
 (global-set-key (kbd "C-x o") 'window-movement/body)
 
-(key-chord-define-global "  " 'spacehydra-movement/body)
-
+(global-set-key (kbd "<escape>") 'spacehydra-movement/body)
 #+END_SRC
+
 
 ** Packages
 *** AucTeX 
@@ -475,6 +398,26 @@ include links to both projects.
   (setq auto-mode-alist (cons '("\\.gp$" . gp-script-mode)
     auto-mode-alist))
 #+END_SRC
+
+*** Elpy
+#+BEGIN_SRC emacs-lisp :tangle yes
+(elpy-enable)
+(require 'py-autopep8)
+(add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+(setq python-shell-completion-native-enable nil)
+(setenv "WORKON_HOME" "~/../")
+(pyvenv-mode 1)
+(pyvenv-activate "homeenv")
+(elpy-use-ipython "ipython")
+
+(defun my-python-noindent-docstring (&optional _previous)
+  (if (eq (car (python-indent-context)) :inside-docstring)
+      'noindent))
+
+(advice-add 'python-indent-line :before-until #'my-python-noindent-docstring)
+
+#+END_SRC
+
 *** Jabber 
 #+BEGIN_SRC emacs-lisp :tangle yes
   (require 'jabber)
@@ -568,6 +511,8 @@ some of this is in here or what it does.
 (cond 
   (
     (eq system-type 'windows-nt)
+    (setq elpy-rpc-python-command "C:\\python27\\python")   
+    (setq python-shell-interpreter "C:\\python27\\python")
   )
   (
     (eq system-type 'darwin)
@@ -587,7 +532,7 @@ some of this is in here or what it does.
       )
     )
     
-    (setq mu4e-get-mail-command "/usr/local/bin/offlineimap")
+    (setq mu4e-get-mail-command "mbsync gmail")
     (setq mu4e-update-interval 180)
     (setq mu4e-split-view 'horizontal)
     (setq mu4e-headers-visible-lines 14)
@@ -600,11 +545,6 @@ some of this is in here or what it does.
         (:subject       .  nil)
       )
     )
-
-    (add-to-list 'mu4e-bookmarks
-      '("\"maildir:/Gmail/[Gmail].Sent Mail\" date:8w..now OR \"maildir:/Outlook/Sent\" date:8w..now" "All sent" ?s))
-    (add-to-list 'mu4e-bookmarks
-      '("\"maildir:/Gmail/INBOX\" date:4w..now OR \"maildir:/Outlook/INBOX\" date:4w..now" "All mail" ?a))
 
     
     (setq message-signature nil)
@@ -619,37 +559,7 @@ some of this is in here or what it does.
     
     (setq message-kill-buffer-on-exit t)
     
-    (defun my-mu4e-set-account ()
-      "Set the account for composing a message."
-      (let* ((account
-        (if mu4e-compose-parent-message
-          (let ((maildir (mu4e-message-field mu4e-compose-parent-message :maildir)))
-            (string-match "/\\(.*?\\)/" maildir)
-            (match-string 1 maildir)
-          )
-          (completing-read (format "Compose with account: (%s) "
-            (mapconcat 
-              #'(lambda (var) (car var))
-              my-mu4e-account-alist "/"
-            )
-          )
-          (mapcar 
-            #'(lambda (var) (car var))
-            my-mu4e-account-alist
-          )
-          nil t nil nil (caar my-mu4e-account-alist)
-        )
-      ))
-      (account-vars (cdr (assoc account my-mu4e-account-alist)))
-    )
-    (if account-vars
-      (mapc #'(lambda (var) (set (car var) (cadr var))) account-vars)
-        (error "No email account found")
-      )
-    )
-  )
-  
-  (add-hook 'mu4e-compose-pre-hook 'my-mu4e-set-account)
+
   (add-hook 'mu4e-compose-mode-hook 'flyspell-mode)
   
   (require 'gnus-dired)
@@ -701,13 +611,6 @@ some of this is in here or what it does.
   )
 
 )
-
-#+END_SRC
-*** Secrets
-So that I can display this publically, I've moved personal
-email information and gpg stuff to another file. That file
-is loaded here.
-#+BEGIN_SRC emacs-lisp :tangle yes
 #+END_SRC
 ** Org
 This is not yet up to speed with my previous configuration.
@@ -751,18 +654,22 @@ modified from
   (if (equal (file-exists-p (get-TODO-file-today)) t)
     (get-TODO-file-today)
     (progn
-      (calendar)
       (find-file (get-TODO-file-today))
       (insert-string (concat "#+TITLE: TODO List for " (format-time-string "%A, %B %d")))
       (newline)
       (insert-string "#+DATE: ")
+      (calendar)
+      (find-file (get-TODO-file-today))
       (org-date-from-calendar)
       (save-buffer t)
       (setq org-agenda-files (file-expand-wildcards "~/.emacs.d/org-files/*.org"))
       (get-TODO-file-today)
+      (delete-other-windows)
     )  
   )
 )
+
+(setq org-src-fontify-natively t)
 #+END_SRC
 
 * Elisp for testing
@@ -778,7 +685,6 @@ here until I either find a home for them or delete them.
     (setq undo-tree-visualizer-timestamps t)
     (setq undo-tree-visualizer-diff t)))
 #+END_SRC
-** Helm swoop
 
 ** Reading
 From [[http:ergoemacs.com/emacs/emacs_make_modern.html]]

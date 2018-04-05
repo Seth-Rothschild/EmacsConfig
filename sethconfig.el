@@ -13,13 +13,20 @@
 (require 'use-package)
 (server-start)
 
-(load-file "~/.emacs.d/personal.el")
+;; I use the server so that I can open applications with emacsclient without
+;; running the entire init file again. In automator, I exported
+;; for f in "$@"
+;;  do
+;;      /usr/local/bin/emacsclient -a "" -n "$f"
+;;  done
+;; as EmacsClient.app, and set that as the default application to open things
 
 (require 'recentf)
 (which-key-mode)
 (require 'dired-x)
 
 (setq-default fill-column 60)
+
 (setq column-number-mode t)
 (electric-indent-mode 0)
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -52,6 +59,14 @@
 (global-unset-key (kbd "C-l"))
 (global-set-key (kbd "C-l") 'dired-up-directory)
 
+;; Found on http://jblevins.org/log/dired-open
+(eval-after-load "dired"
+  '(progn
+     (define-key dired-mode-map (kbd "z")
+       (lambda () (interactive)
+         (let ((fn (dired-get-file-for-visit)))
+           (start-process "default-app" nil "open" fn))))))
+
 (require 'helm)
 (require 'helm-config)
 (helm-mode 1)
@@ -63,86 +78,164 @@
   helm-ff-file-name-history-use-recentf t
 )
 (helm-autoresize-mode t)
-(global-set-key (kbd "C-x b") 'helm-mini)
-(global-set-key (kbd "C-x C-f") 'helm-find-files)
+
 (define-key helm-map (kbd "<tab>") 'helm-execute-persistent-action) 
 (define-key helm-map (kbd "C-z")  'helm-select-action) 
 
+(global-set-key (kbd "C-x b") 'helm-mini)
+(global-set-key (kbd "C-x C-f") 'helm-find-files)
 (global-set-key (kbd "C-c h") 'helm-command-prefix)
+
 (global-set-key (kbd "M-x") 'helm-M-x)
 (global-set-key (kbd "M-y") 'helm-show-kill-ring)
+
+(use-package helm-swoop
+  :bind
+  ("C-s" . helm-swoop)
+)
+(setq helm-swoop-pre-input-function (lambda () ""))
 
 (defun select-current-line ()
   "Select the current line"
   (interactive)
-  (end-of-line) ; move to end of line
-  (set-mark (line-beginning-position)))
+  (end-of-line)
+  (set-mark (line-beginning-position))
+)
 
-(defhydra nomodifier-movement ()
-  "Emacs Movement"
-  ("f" forward-char)
-  ("F" forward-word)
-  ("b" backward-char)
-  ("B" backward-word)
-  ("n" next-line)
-  ("p" previous-line)
-  ("e" end-of-line)
-  ("E" forward-sentence)
+
+
+(defhydra nomodifier-movement (
+    :hint nil
+    :pre (set-cursor-color "#990000")
+    :post (progn (set-cursor-color "#000000")
+                 (evil-mode 0))
+  )
+  "Movement Hydra"
   ("a" beginning-of-line)
   ("A" backward-sentence)
-  ("u" undo-tree-visualize)
-  ("dl" delete-char)
-  ("dw" kill-word)
-  ("dd" kill-whole-line)
+  ("b" backward-char)
+  ("B" backward-word)
+  ("d" evil-delete)
+  ("e" end-of-line)
+  ("E" forward-sentence)
+  ("f" evil-find-char)
+  ("F" evil-find-char-backward)
+  ("j" evil-forward-paragraph)
+  ("k" evil-backward-paragraph)
+  ("m" evil-jump-item)
+  ("n" next-line)
+  ("N" (next-line 5))
+  ("p" previous-line)
+  ("P" (previous-line 5))
+  ("r" evil-replace)
+  ("s" evil-search-forward)
+  ("u" undo-tree-undo)
+  ("U" undo-tree-redo)
   ("v" set-mark-command)
   ("V" select-current-line)
-  (">" end-of-buffer) 
-  ("<" beginning-of-buffer)
-  ("q" nil)
+  ("x" delete-char)
+  ("X" delete-backward-char)
+  ("y" yank) 
+  
+  ("il" (progn (newline)
+    (insert-string "<s")
+    (org-try-structure-completion)
+    (insert-string "emacs-lisp :tangle yes")
+    (next-line)
+  ))
+  ("ip" (progn (newline)
+    (insert-string "<s")
+    (org-try-structure-completion)
+    (insert-string "python :results output :session *Python* :tangle yes")
+    (next-line)
+  ))
+
+  ("t" org-todo)
+  ("." org-time-stamp)
+  ("<left>" org-metaleft)
+  ("<right>" org-metaright)
+  ("<up>" org-metaup)
+  ("<down>" org-metadown)
+  
+  ("o" window-movement/body "Window movement" :exit t)
+  ("SPC" spacehydra-movement/body "Spacehydra" :exit t)
+  ("q" nil "Quit" :exit t)
 )
 
-(defhydra window-movement ()
+(defhydra window-movement (
+    :hint nil
+    :columns 6
+    :pre
+    (set-cursor-color "#009900")
+    :post
+    (set-cursor-color "#000000")
+  )
   "Window Movement"
-  ("<left>" windmove-left)
-  ("<right>" windmove-right)
-  ("<down>" windmove-down)
-  ("<up>" windmove-up)
+  ("<left>" windmove-left "Window left")
+  ("<right>" windmove-right "Window right")
+  ("<down>" windmove-down "Window down")
+  ("<up>" windmove-up "Window up")
+  ("b" helm-mini "Buffer")
+  ("B" (progn (other-window 1) (helm-mini)) "Buffer other")
+  ("d" delete-window "Delete")
+  ("D" delete-other-windows "Delete other")
+  ("f" find-file)
+  ("F" find-file-other-window)
+  ("h" split-window-below)
+  ("k" kill-buffer "Kill buffer")
   ("o" other-window)
   ("v" split-window-right)
-  ("d" delete-window)
-  ("D" delete-other-windows)
-  ("f" find-file "file")
-  ("F" find-file-other-window "other file")
-  ("b" helm-buffers-list "buffers list")
-  ("B" (progn (other-window 1) (helm-buffers-list)))
-  ("q" nil)
+
+  ("SPC" spacehydra-movement/body "Spacehydra" :exit t)
+  ("n" nomodifier-movement/body :exit t)
+  ("p" nomodifier-movement/body :exit t)
+  ("q" nil "Quit" :exit t)
 )
 
-(defhydra spacehydra ()
+
+(defhydra spacehydra-movement (
+    :hint nil
+    :columns 6
+    :exit t 
+    :pre
+    (set-cursor-color "#000099")
+    :post
+    (set-cursor-color "#000000")
+  )
   "Space-Hydra"
-  ("a" helm-ag "helm-ag")
+  ("a" org-agenda "Agenda")
   ("b" helm-mini)
+  ("c" org-capture "Capture")
   ("d" dired) 
-  ("f" helm-find-files)
+  ("fa" helm-ag "Find with ag")
+  ("fr" helm-ag-project-root "Find from root")
+  ("ff" helm-find-file "Find file")
   ("hf" describe-function)
   ("hi" info)
   ("hk" describe-key)
   ("hm" describe-mode)
   ("hv" describe-variable)
-  ("s" save-buffer "save")
-  ("m" magit-status "magit status")
+  ("ls" org-store-link "Store link")
+  ("li" org-insert-link "Insert link")
+  ("s" save-buffer "Save")
+  ("t" (find-file (TODO-file-today)) "Today's todo")
+  ("m" magit-status "Magit status")
   ("x" helm-M-x)
-  ("q" nil)
-)
 
+  ("n" nomodifier-movement/body :exit t)
+  ("p" nomodifier-movement/body :exit t)
+  ("o" window-movement/body "Window movement" :exit t)
+
+  ("q" nil "Quit" :exit t)
+)
 
 (key-chord-mode 1)
 (key-chord-define-global "np" 'nomodifier-movement/body)
 
-(global-unset-key (kbd "C-o")) 
-(global-set-key (kbd "C-o") 'window-movement/body)
+(global-unset-key (kbd "C-x o")) 
+(global-set-key (kbd "C-x o") 'window-movement/body)
 
-(key-chord-define-global "  " 'spacehydra/body)
+(global-set-key (kbd "<escape>") 'spacehydra-movement/body)
 
 (setq TeX-auto-save t)
 (setq TeX-parse-self t)
@@ -204,6 +297,21 @@
 (setq auto-mode-alist (cons '("\\.gp$" . gp-script-mode)
   auto-mode-alist))
 
+(elpy-enable)
+(require 'py-autopep8)
+(add-hook 'elpy-mode-hook 'py-autopep8-enable-on-save)
+(setq python-shell-completion-native-enable nil)
+(setenv "WORKON_HOME" "~/../")
+(pyvenv-mode 1)
+(pyvenv-activate "homeenv")
+(elpy-use-ipython "ipython")
+
+(defun my-python-noindent-docstring (&optional _previous)
+  (if (eq (car (python-indent-context)) :inside-docstring)
+      'noindent))
+
+(advice-add 'python-indent-line :before-until #'my-python-noindent-docstring)
+
 (require 'jabber)
 (setq 
   jabber-roster-line-format " %c %-25n %u %-8s"
@@ -213,6 +321,8 @@
   jabber-backlog-number 40
   jabber-backlog-days 30
 )
+
+(setq magit-repository-directories '("~/Desktop/Repositories"))
 
 (global-set-key (kbd "C->") 'mc/mark-next-like-this)
 (global-set-key (kbd "C-<") 'mc/mark-previous-like-this)
@@ -267,112 +377,155 @@
   (kill-process " *mu4e-update*")
 )
 
-(setq mu4e-maildir "~/Maildir")
+(cond 
+  (
+    (eq system-type 'windows-nt)
+    (setq elpy-rpc-python-command "C:\\python27\\python")   
+    (setq python-shell-interpreter "C:\\python27\\python")
+  )
+  (
+    (eq system-type 'darwin)
+    (load-file "~/.emacs.d/personal.el")
 
-(setq mu4e-drafts-folder "/Gmail/[Gmail].Drafts")
-(setq mu4e-sent-folder   "/Gmail/[Gmail].Sent Mail")
-(setq mu4e-trash-folder  "/Gmail/[Gmail].Trash")
+    (setq mu4e-maildir "~/Maildir")
+    
+    (setq mu4e-drafts-folder "/Gmail/[Gmail].Drafts")
+    (setq mu4e-sent-folder   "/Gmail/[Gmail].Sent Mail")
+    (setq mu4e-trash-folder  "/Gmail/[Gmail].Trash")
+    
+    (setq mu4e-sent-messages-behavior 'sent)
+    
+    (setq mu4e-maildir-shortcuts
+      '(("/Gmail/INBOX"     . ?i)
+        ("/Outlook/INBOX"   . ?e)
+      )
+    )
+    
+    (setq mu4e-get-mail-command "mbsync gmail")
+    (setq mu4e-update-interval 180)
+    (setq mu4e-split-view 'horizontal)
+    (setq mu4e-headers-visible-lines 14)
+    
+    (setq mu4e-headers-fields
+      '((:human-date    .  12)
+        (:flags         .   6)
+        (:from          .  22)
+        (:to            .  22)
+        (:subject       .  nil)
+      )
+    )
 
-(setq mu4e-sent-messages-behavior 'sent)
+    
+    (setq message-signature nil)
+    (setq message-signature-file "~/.emacs.d/.signature")
+    (setq mu4e-compose-signature-auto-include nil)
+    (setq mu4e-compose-signature (file-string "~/.emacs.d/.signature"))
+    (setq mu4e-compose-dont-reply-to-self t)
+    
+    (setq starttls-gnutls-program "/usr/local/bin/gnutls-cli")
+    
+    (require 'smtpmail)
+    
+    (setq message-kill-buffer-on-exit t)
+    
 
-(setq mu4e-maildir-shortcuts
-    '( ("/Gmail/INBOX"     . ?i)
-       ("/Outlook/INBOX"   . ?e)))
+  (add-hook 'mu4e-compose-mode-hook 'flyspell-mode)
+  
+  (require 'gnus-dired)
 
-;; allow for updating mail using 'U' in the main view:
-(setq mu4e-get-mail-command "/usr/local/bin/offlineimap")
-(setq mu4e-update-interval 180)
-(setq mu4e-split-view 'horizontal)
-(setq mu4e-headers-visible-lines 14)
+  (defun gnus-dired-mail-buffers ()
+    "Return a list of active message buffers."
+    (let (buffers)
+      (save-current-buffer
+        (dolist (buffer (buffer-list t))
+          (set-buffer buffer)
+          (when (and (derived-mode-p 'message-mode)
+              (null message-sent-message-via)
+            )
+            (push (buffer-name buffer) buffers)
+          )
+        )
+      )
+      (nreverse buffers)
+    )
+  )
+  
+  (setq gnus-dired-mail-mode 'mu4e-user-agent)
+  (add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
+  
+  (require 'org-mu4e)
+  
+  (add-to-list 'mu4e-view-actions
+    '("ViewInBrowser" . mu4e-action-view-in-browser) t)
+  (add-to-list 'helm-find-files-actions
+    '("Attach files for mu4e" .
+      helm-mu4e-attach
+    ) t
+  )
+  
+  (defun helm-mu4e-attach (_file)
+    (gnus-dired-attach (helm-marked-candidates))
+  )
+  (require 'helm-mu)
+  (setq mu4e-hide-index-messages 1)
+  
+  (mu4e-alert-set-default-style 'notifier)
+  (setq alert-notifier-command "/usr/local/bin/terminal-notifier")
+  (add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
+  (add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
+  
+  
+  (require 'mu4e-contrib) 
+  (setq mu4e-html2text-command 'mu4e-shr2text) 
+  )
 
-(setq mu4e-headers-fields
-    '( (:human-date    .  12)
-       (:flags         .   6)
-       (:from          .  22)
-       (:to            .  22)
-       (:subject       .  nil)))
-
-(add-to-list 'mu4e-bookmarks
-'("\"maildir:/Gmail/[Gmail].Sent Mail\" date:8w..now OR \"maildir:/Outlook/Sent\" date:8w..now" "All sent" ?s))
-(add-to-list 'mu4e-bookmarks
-           '("\"maildir:/Gmail/INBOX\" date:4w..now OR \"maildir:/Outlook/INBOX\" date:4w..now" "All mail" ?a))
-
-
- 
-;; something about ourselves
-
-(setq message-signature nil)
-(setq message-signature-file "~/.emacs.d/.signature")
-(setq mu4e-compose-signature-auto-include nil)
-(setq mu4e-compose-signature (file-string "~/.emacs.d/.signature"))
-(setq mu4e-compose-dont-reply-to-self t)
-
-(setq starttls-gnutls-program "/usr/local/bin/gnutls-cli")
-
-(require 'smtpmail)
-
-(setq message-kill-buffer-on-exit t)
-
-(defun my-mu4e-set-account ()
-  "Set the account for composing a message."
-  (let* ((account
-          (if mu4e-compose-parent-message
-              (let ((maildir (mu4e-message-field mu4e-compose-parent-message :maildir)))
-                (string-match "/\\(.*?\\)/" maildir)
-                (match-string 1 maildir))
-            (completing-read (format "Compose with account: (%s) "
-                                     (mapconcat #'(lambda (var) (car var))
-                                                my-mu4e-account-alist "/"))
-                             (mapcar #'(lambda (var) (car var)) my-mu4e-account-alist)
-                             nil t nil nil (caar my-mu4e-account-alist))))
-         (account-vars (cdr (assoc account my-mu4e-account-alist))))
-    (if account-vars
-        (mapc #'(lambda (var)
-                  (set (car var) (cadr var)))
-              account-vars)
-      (error "No email account found"))))
-
-(add-hook 'mu4e-compose-pre-hook 'my-mu4e-set-account)
-(add-hook 'mu4e-compose-mode-hook 'flyspell-mode)
-
-(require 'gnus-dired)
-
-(defun gnus-dired-mail-buffers ()
-  "Return a list of active message buffers."
-  (let (buffers)
-    (save-current-buffer
-      (dolist (buffer (buffer-list t))
-      (set-buffer buffer)
-      (when (and (derived-mode-p 'message-mode)
-        (null message-sent-message-via))
-        (push (buffer-name buffer) buffers))))
-    (nreverse buffers)))
-
-(setq gnus-dired-mail-mode 'mu4e-user-agent)
-(add-hook 'dired-mode-hook 'turn-on-gnus-dired-mode)
-
-(require 'org-mu4e)
-
-(add-to-list 'mu4e-view-actions
-  '("ViewInBrowser" . mu4e-action-view-in-browser) t)
-(add-to-list 'helm-find-files-actions
-  '("Attach files for mu4e" .
-    helm-mu4e-attach) t
 )
 
-(defun helm-mu4e-attach (_file)
-  (gnus-dired-attach (helm-marked-candidates)))
-(require 'helm-mu)
-(setq mu4e-hide-index-messages 1)
+(setq org-capture-templates '(
+    ("t" "TODO capture"
+         entry (file (TODO-file-today))
+         "* TODO %?")
+    ("l" "TODO capture with link"
+         entry (file (TODO-file-today))
+         "* TODO %?\n  From: %a")
+))
 
-(mu4e-alert-set-default-style 'notifier)
-(setq alert-notifier-command "/usr/local/bin/terminal-notifier")
-(add-hook 'after-init-hook #'mu4e-alert-enable-notifications)
-(add-hook 'after-init-hook #'mu4e-alert-enable-mode-line-display)
+(setq org-return-follows-link t)
+(setq org-cycle-emulate-tab nil)
+(setq org-directory "~/.emacs.d/org-files")
+(setq org-agenda-files (file-expand-wildcards "~/.emacs.d/org-files/*.org"))
 
+(setq org-todo-keywords
+  '((sequence "TODO" "|" "DONE" "WAIT")))
+(setq org-todo-keyword-faces
+  '(("TODO" . org-warning) ("WAIT" . "blue")))
 
-(require 'mu4e-contrib) 
-(setq mu4e-html2text-command 'mu4e-shr2text)
+(defun get-TODO-file-today ()
+  "Return filename for today's journal entry."
+  (let ((daily-name (format-time-string "%Y-%m-%d")))
+    (expand-file-name (concat "~/.emacs.d/org-files/" daily-name ".org"))))
+
+(defun TODO-file-today ()
+  "Create and load a journal file based on today's date."
+  (if (equal (file-exists-p (get-TODO-file-today)) t)
+    (get-TODO-file-today)
+    (progn
+      (find-file (get-TODO-file-today))
+      (insert-string (concat "#+TITLE: TODO List for " (format-time-string "%A, %B %d")))
+      (newline)
+      (insert-string "#+DATE: ")
+      (calendar)
+      (find-file (get-TODO-file-today))
+      (org-date-from-calendar)
+      (save-buffer t)
+      (setq org-agenda-files (file-expand-wildcards "~/.emacs.d/org-files/*.org"))
+      (get-TODO-file-today)
+      (delete-other-windows)
+    )  
+  )
+)
+
+(setq org-src-fontify-natively t)
 
 (use-package undo-tree
   :diminish undo-tree-mode
@@ -382,15 +535,6 @@
     (setq undo-tree-visualizer-timestamps t)
     (setq undo-tree-visualizer-diff t)))
 
-(use-package helm-swoop
-  :bind
-  ("C-s" . helm-swoop)
-  :config
-  (progn
-    (define-key isearch-mode-map (kbd "M-i") 'helm-swoop-from-isearch)
-    (define-key helm-swoop-map (kbd "M-i") 'helm-multi-swoop-all-from-helm-swoop))
-)
-
 (defun xah-toggle-margin-right ()
   "Toggle the right margin between `fill-column' or window width.
 This command is convenient when reading novel, documentation."
@@ -398,3 +542,5 @@ This command is convenient when reading novel, documentation."
   (if (eq (cdr (window-margins)) nil)
       (set-window-margins nil 0 (- (window-body-width) fill-column))
     (set-window-margins nil 0 0) ) )
+
+
